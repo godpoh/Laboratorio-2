@@ -79,11 +79,11 @@ def initial_deal_cards(deck):
     return players, table
 def chip_conversion(player_name):
     denominations = {
-        "blanca": 1,
-        "roja": 5,
-        "azul": 10,
-        "verde": 25,
-        "negra": 100
+        "blanca(1$)": 1,
+        "roja(5$)": 5,
+        "azul(10$)": 10,
+        "verde(25$)": 25,
+        "negra(100$)": 100
     }
     players_chips = {}
 
@@ -96,7 +96,7 @@ def chip_conversion(player_name):
 
     if remaining_chips > 0:
         min_denomination = min(denominations.values())
-        players_chips["blanca"] += remaining_chips // min_denomination
+        players_chips["blanca(1$)"] += remaining_chips // min_denomination
 
     return players_chips
 def show_initial_chips(player_name, initial_chips ):
@@ -113,7 +113,7 @@ def call_option_fold():
         print("|                2. Raise                  |")
         print("|                3. Fold                   |")
         print("|------------------------------------------|")
-#   PUEDE SER CALL, CHECK Y ALL IN EN PRIMER RONDA, AL ACABAR PRIMER RONDA SE MUESTREN 3 CARTAS,
+#PUEDE SER CALL, CHECK Y ALL IN EN PRIMER RONDA, AL ACABAR PRIMER RONDA SE MUESTREN 3 CARTAS,
         option = input("Ingrese el proximo movimiento: ")
 
         if option == "1":
