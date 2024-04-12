@@ -184,7 +184,7 @@ def fold(player_data):
 def bet():
     pass
 
-def post_flop():
+def all_in():
     pass
 
 def river_betting_round(cards, dealcards):
@@ -208,14 +208,8 @@ def river_betting_round(cards, dealcards):
         print(river)
         dealcards()
 
-def turn_betting_round():
-    pass
 
-def handle_blinds():
-    pass
 
-def all_in():
-    pass
 
 main()
 
