@@ -20,15 +20,15 @@ def options_menu(selection):
         exit_game()
     else:
         print("\nOpcion invalida. Intente de nuevon\n")
-
 def start_game():
     shuffle_deck = create_shuffle_deck()
-    initial_deal_cards(shuffle_deck)
-    call_option_fold("1")
+    players, table = initial_deal_cards(shuffle_deck)
+    current_player = list(players.keys())[0]
+    turn_players(players, table, current_player)
+
 
 def show_califications():
     pass
-
 def exit_game():
     print("Saliendo del sistema")
     exit()
@@ -116,15 +116,19 @@ def show_initial_chips(player_name, initial_chips ):
         print(f"{count} ficha(s) de {denomination}")
 
 
-def call_option_fold(last_move):
+def call_option_fold(last_move, player_data):
     while True:
         print("|------------------------------------------|")
         if last_move == "1":
             print("|                1. Call                   |")
         else:
-            print("|                1. Check                |")
-        print("|                2. Raise                  |")
+            print("|                1. Check                  |")
+        if last_move == "2":
+            print("|                2. Raise                  |")
+        else:
+            print("|                3. Bet                    |")
         print("|                3. Fold                   |")
+        print("|                4. All in                 |")
         print("|------------------------------------------|")
 #PUEDE SER CALL, CHECK Y ALL IN EN PRIMER RONDA, AL ACABAR PRIMER RONDA SE MUESTREN 3 CARTAS,
         option = input("Ingrese el proximo movimiento: ")
@@ -133,49 +137,78 @@ def call_option_fold(last_move):
             if last_move == "1":
                 call()
             else:
-                check()
+                check(player_data)
+
         elif option == "2":
-            raaise()
+            if last_move == "2":
+                raaise()
+            else:
+                bet()
         elif option == "3":
-            fold()
+            fold(player_data)
+        elif option == "4":
+            all_in()
         else:
             print("Opcion invalida")
 
-def turn_players(players, table):
+def turn_players(players, table, current_player):
     while True:
-        if current_player == 0:
+
+        if current_player == list(players.keys())[0]:
             print("\nTu turno!\n")
             call_option_fold("1", players[current_player])
         else:
-            print("Turno de Sheldon Cooper")
+            print("\nTurno de Sheldon Cooper")
             sheldon_move = sheldon_decide_move(bot["cards"], table)
-            call_option_fold(sheldon_move, players[current_player])
-
+            call_option_fold(sheldon_move, players[bot["name"]])
 
         current_player = (current_player + 1) % 2
+
 def sheldon_decide_move(sheldon_cards, table_cards):
-    return random.choice(call_option_fold(["1", "2", "3"]))
+    return random.choice(["1", "2", "3"])
 
 def call():
     pass
 
-def check():
-    pass
+def check(player_data):
+    maxbid = player_data["fichas"]
+    print("Holaa")
 def raaise():
     pass
 
-def fold():
-    print("\nTe retiras con (agregar el numero de fichas en restantes)\n")
+def fold(player_data):
+    player_name = player_data
+    print(f"\nTe retiras con {player_data['fichas']} fichas\n")
     main()
 
+def bet():
+    pass
 
 def post_flop():
     pass
 
-def turn_betting_round():
-    pass
+def river_betting_round(cards, dealcards):
+    river = []
+    if river == 0:
+        river.append(cards)
+        river.append(cards)
+        river.append(cards)
+        print(river)
+        river.append(cards)
 
-def river_betting_round():
+    # There are 3 cards on the river.
+    elif river.len() == 3:
+        river.append(cards)
+        print(river)
+        river_betting_round()
+
+    # There are 4 cards on the river.
+    elif river.len() == 4:
+        river.append(cards)
+        print(river)
+        dealcards()
+
+def turn_betting_round():
     pass
 
 def handle_blinds():
@@ -185,3 +218,4 @@ def all_in():
     pass
 
 main()
+
