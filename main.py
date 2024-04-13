@@ -25,6 +25,7 @@ def start_game():
     players, table = initial_deal_cards(shuffle_deck)
     current_player = list(players.keys())[0]
     turn_players(players, table, current_player)
+    river_betting_round(table)
 
 
 def show_califications():
@@ -75,9 +76,9 @@ def initial_deal_cards(deck):
     for player, data in players.items():
         show_initial_chips(player, chip_conversion(data["fichas"]))
 
-    for x in range(2):
+    for x in range(1):
         for player in players:
-            players[player]["fichas"] -= 5
+            players[player]["fichas"] -= 25
             players[player]["cartas"].append(deck.pop())
 
     table = []
@@ -101,6 +102,7 @@ def chip_conversion(player_name):
         chips = random.randint(0, max_chips)
         players_chips[denomination] = chips
         remaining_chips -= chips * value
+
 
     if remaining_chips > 0:
         min_denomination = min(denominations.values())
@@ -126,7 +128,7 @@ def call_option_fold(last_move, player_data):
         if last_move == "2":
             print("|                2. Raise                  |")
         else:
-            print("|                3. Bet                    |")
+            print("|                2. Bet                    |")
         print("|                3. Fold                   |")
         print("|                4. All in                 |")
         print("|------------------------------------------|")
@@ -147,69 +149,89 @@ def call_option_fold(last_move, player_data):
         elif option == "3":
             fold(player_data)
         elif option == "4":
-            all_in()
+            all_in(player_data)
         else:
             print("Opcion invalida")
 
+        if option in ["1", "2", "3", "4"]:
+            break
+
+
+
 def turn_players(players, table, current_player):
     while True:
-
         if current_player == list(players.keys())[0]:
             print("\nTu turno!\n")
             call_option_fold("1", players[current_player])
         else:
             print("\nTurno de Sheldon Cooper")
             sheldon_move = sheldon_decide_move(bot["cards"], table)
+            print("Sheldon Cooper selecciono: ",sheldon_move)
             call_option_fold(sheldon_move, players[bot["name"]])
 
-        current_player = (current_player + 1) % 2
+        current_player = (int(current_player) + 1) % 2
+
+        if current_player == 0:
+            break
+    river_betting_round(table)
 
 def sheldon_decide_move(sheldon_cards, table_cards):
-    return random.choice(["1", "2", "3"])
+    return random.choice(["1", "2", "3", "4"])
 
 def call():
-    pass
+    print("El jugador hizo un Call!")
 
 def check(player_data):
     maxbid = player_data["fichas"]
     print("Holaa")
 def raaise():
-    pass
+    print("El jugador hizo un raise!")
 
 def fold(player_data):
     player_name = player_data
-    print(f"\nTe retiras con {player_data['fichas']} fichas\n")
+    print(f"\nSe retira {player_name['fichas']} fichas\n")
     main()
 
 def bet():
+    print("El jugador hizo un Bet!")
+
+def all_in(player_data):
+    print("El jugador hizo un All-in!")
+    player_data["fichas"] = 0
+def post_flop():
     pass
 
-def all_in():
-    pass
-
-def river_betting_round(cards, dealcards):
+def river_betting_round(cards):
     river = []
-    if river == 0:
-        river.append(cards)
-        river.append(cards)
-        river.append(cards)
-        print(river)
-        river.append(cards)
-
-    # There are 3 cards on the river.
-    elif river.len() == 3:
-        river.append(cards)
-        print(river)
-        river_betting_round()
-
-    # There are 4 cards on the river.
-    elif river.len() == 4:
-        river.append(cards)
-        print(river)
-        dealcards()
+    # Si aún no hay cartas en el río
+    if len(cards) > 0:
+        print("ronda1")
+        # Agregar las primeras tres cartas al río
+        for _ in range(3):
+            river.append(cards.pop())
+        print("Cartas en el río después del flop:", river)
+        # Aquí puedes simular la ronda de apuestas después del flop
 
 
+    # Si ya hay 3 cartas en el río
+    if len(cards) > 0:
+        print("ronda2")
+        # Agregar la cuarta carta al río
+        river.append(cards.pop())
+        print("Cartas en el río después del turn:", river)
+        # Aquí puedes simular la ronda de apuestas después del turn
 
+    # Si ya hay 4 cartas en el río
+    if len(cards) > 0:
+        print("ronda3")
+        # Agregar la quinta carta al río
+        river.append(cards.pop())
+        print("Cartas en el río después del river:", river)
+        # Aquí puedes simular la última ronda de apuestas
+def turn_betting_round():
+    pass
+
+def handle_blinds():
+    pass
 
 main()
-
