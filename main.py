@@ -217,7 +217,7 @@ def river_betting_round(table, player_data, player_name):
 
     print("Cartas del río:", river)
 
-def sheldon_decide_move(sheldon_cards, table_cards):
+def sheldon_decide_move():
     return random.choice(["1", "2", "3", "4"])
 
 def call(player_data):
@@ -268,16 +268,12 @@ def fold(player_data, player_name):
     else:
         print(f"{player_name} se retiro del juego")
 
-
-
 def bet():
     print("El jugador hizo un Bet!")
 
 def all_in(player_data):
     print("El jugador hizo un All-in!")
     player_data["fichas"] = 0
-
-
 
 def play_game_round(players, table, player_name):
     pre_flop_finished = False
