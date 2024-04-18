@@ -191,8 +191,8 @@ def turn_players(players, table, current_player, player_data):
         is_player_turn = not is_player_turn
 
 def sheldon_decide_move(sheldon_cards, table_cards):
-    # return random.choice(["1", "2", "3", "4"])
-    return "3"
+    return random.choice(["1", "2", "3", "4"])
+    # return "3"
 
 def call(player_data, opponent_data):
 
