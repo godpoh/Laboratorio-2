@@ -187,7 +187,7 @@ def turn_players(players, table, current_player, player_data):
             if sheldon_move == "3":
                 fold_message = fold(players["Sheldon Cooper"])
                 if fold_message is None:
-                    return list(players.keys())[0]
+                    return current_player
                 print(fold_message)
                 return "Sheldon Cooper"
 
@@ -235,19 +235,21 @@ def raaise():
     print("El jugador hizo un raise!")
 
 def fold(player_data):
-    player_name = list(player_data.keys())[0]
-    if player_data["fichas"] == 0:
+    player_name = next(iter(player_data))  # Obtenemos el nombre del jugador
+    if player_data[player_name]["fichas"] == 0:
         print(f"{player_name} se retiró del juego.")
     else:
-        print(f"{player_name} se retiró del juego con {player_data['fichas']} fichas.")
+        print(f"{player_name} se retiró del juego con {player_data[player_name]['fichas']} fichas.")
     return None
 
 def bet():
     print("El jugador hizo un Bet!")
 
-def all_in(player_data):
+def all_in(player_data, player_name):
     print("El jugador hizo un All-in!")
     player_data["fichas"] = 0
+
+
 
 def river_betting_round(cards, player_data):
     river = []
