@@ -23,9 +23,13 @@ def options_menu(selection):
 def start_game():
     shuffle_deck = create_shuffle_deck()
     players, table = initial_deal_cards(shuffle_deck)
+
     current_player = list(players.keys())[0]
+
+    show_player_cards(current_player, players[current_player]["cartas"])
+
     turn_players(players, table, current_player, {})
-    river_betting_round(table, {})
+    river_betting_round(table, players)
 
 
 def show_califications():
@@ -33,10 +37,17 @@ def show_califications():
 def exit_game():
     print("Saliendo del sistema")
     exit()
-
-
-
-
+def show_player_cards(player_name ,cards):
+    print(f"{player_name} tus cartas son: ")
+    for card in cards:
+        print(card)
+def validate_string_name_input(prompt):
+    while True:
+        user_input = input(prompt)
+        if not user_input.replace(" ","").isalpha() or not user_input.istitle():
+            print("Debe ser un nombre con solo letras, ademas debe empezar con una mayuscula inicial")
+            continue
+        return user_input
 
 
 
@@ -68,17 +79,17 @@ bot = {
 
 def initial_deal_cards(deck):
     players = {}
-    player_name = input("Ingrese su nombre: ")
+    player_name = validate_string_name_input("Ingrese su nombre: ")
 
     players[player_name] = {"fichas": 500, "cartas": []}
     players[bot["name"]] = {"fichas": bot["chips"], "cartas": []}
 
     for player, data in players.items():
-        show_initial_chips(player, chip_conversion(data["fichas"]))
+        show_initial_chips(player, chip_conversion(data["fichas"]), data["cartas"])
 
-    for x in range(1):
-        for player in players:
-            players[player]["fichas"] -= 25
+    for player in players:
+        players[player]["fichas"] -= 25
+        for x in range(2):
             players[player]["cartas"].append(deck.pop())
 
     table = []
@@ -109,14 +120,17 @@ def chip_conversion(player_name):
         players_chips["blanca(1$)"] += remaining_chips // min_denomination
 
     return players_chips
-def show_initial_chips(player_name, initial_chips ):
+def show_initial_chips(player_name, initial_chips, cards ):
     print("\n|------------------------------------------|")
     print(f"|{player_name}, tiene las siguentes fichas|")
     print("|               TOTAL ($500)               |")
     print("|------------------------------------------|")
     for denomination, count in initial_chips.items():
         print(f"{count} ficha(s) de {denomination}")
-
+    if cards:
+        print(f"{player_name} tus cartas son: ")
+        for card in cards:
+            print(card)
 
 def call_option_fold(last_move, player_data):
     while True:
@@ -159,8 +173,9 @@ def call_option_fold(last_move, player_data):
 
 
 def turn_players(players, table, current_player, player_data):
+    is_player_turn = True
     while True:
-        if current_player == list(players.keys())[0]:
+        if is_player_turn:
             print("\nTu turno!\n")
             call_option_fold("1", players[current_player])
         else:
@@ -169,14 +184,18 @@ def turn_players(players, table, current_player, player_data):
             print("Sheldon Cooper selecciono: ",sheldon_move)
             call_option_fold(sheldon_move, players[bot["name"]])
 
-        current_player = (int(current_player) + 1) % 2
+        is_player_turn = not is_player_turn
 
-        if current_player == 0:
-            break
+        if is_player_turn:
+            current_player = list(players.keys())[0]
+        else:
+            current_player = bot["name"]
+
     river_betting_round(table, player_data)
 
 def sheldon_decide_move(sheldon_cards, table_cards):
     return random.choice(["1", "2", "3", "4"])
+
 
 def call():
     print("El jugador hizo un Call!")
