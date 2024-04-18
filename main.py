@@ -58,9 +58,6 @@ def validate_string_name_input(prompt):
 
 
 
-# print("Se te fueron removidos $25(1 ficha verde) como pago inicial")
-
-
 
 
 
@@ -73,18 +70,15 @@ def create_shuffle_deck():
         random.shuffle(deck)
         return deck
 
-bot = {
-    "name": "Sheldon Cooper",
-    "chips": 500,
-    "cards": []
-}
+
 
 def initial_deal_cards(deck):
     players = {}
     player_name = validate_string_name_input("Ingrese su nombre: ")
 
+
     players[player_name] = {"fichas": 500, "cartas": []}
-    players[bot["name"]] = {"fichas": bot["chips"], "cartas": []}
+    players["Sheldon Cooper"] = {"fichas": 500, "cartas": []}
 
     for player, data in players.items():
         show_initial_chips(player, chip_conversion(data["fichas"]), data["cartas"])
@@ -95,9 +89,7 @@ def initial_deal_cards(deck):
         players[player]["fichas"] -= 25
         for x in range(2):
             dealt_card = deck.pop()
-            players[player]["cartas"].append(deck.pop())
-            if player == bot["name"]:
-                bot["cards"].append(dealt_card)
+            players[player]["cartas"].append(dealt_card)
 
     table = []
     for x in range(5):
@@ -159,7 +151,7 @@ def call_option_fold(last_move, player_data, opponent_data):
 
         if option == "1":
             if last_move == "1":
-                call()
+                 player_data = call(player_data, opponent_data)
             else:
                 check(player_data)
 
@@ -169,7 +161,7 @@ def call_option_fold(last_move, player_data, opponent_data):
             else:
                 bet()
         elif option == "3":
-            fold(player_data, opponent_data)
+            fold(player_data)
             break
         elif option == "4":
             all_in(player_data)
@@ -179,38 +171,58 @@ def call_option_fold(last_move, player_data, opponent_data):
         if option in ["1", "2", "3", "4"]:
             break
 
-
-
 def turn_players(players, table, current_player, player_data):
     is_player_turn = True
     while True:
         if is_player_turn:
             print("\nTu turno!\n")
-            call_option_fold("1", player_data, players[bot["name"]])
+            call_option_fold("1", player_data, players["Sheldon Cooper"])
         else:
             print("\nTurno de Sheldon Cooper")
-            sheldon_move = sheldon_decide_move(bot["cards"], table)
+            sheldon_move = sheldon_decide_move(players["Sheldon Cooper"]["cartas"], table)
             print("Sheldon Cooper selecciono: ",sheldon_move)
+            # if sheldon_move == "1":
+            #     player_data, opponent_data = call(player_data, opponent_data)
+
             if sheldon_move == "3":
-                fold_message = fold(players[bot]["name"], player_data)
+                fold_message = fold(players["Sheldon Cooper"])
+                if fold_message is None:
+                    return list(players.keys())[0]
                 print(fold_message)
-            return
+                return "Sheldon Cooper"
 
-
-
-
-            call_option_fold(sheldon_move, players[bot["name"]], player_data)
+            call_option_fold(sheldon_move, players["Sheldon Cooper"], player_data)
 
         is_player_turn = not is_player_turn
 
-
-
 def sheldon_decide_move(sheldon_cards, table_cards):
-    return random.choice(["1", "2", "3", "4"])
+    # return random.choice(["1", "2", "3", "4"])
+    return "3"
 
-
-def call():
+def call(player_data, opponent_data):
     print("El jugador hizo un Call!")
+    player_name = list(player_data.keys())[0]
+    opponent_name = list(opponent_data.keys())[0]
+
+    if 'fichas' in player_data:
+        player_chips = player_data['fichas']
+        opponent_chips = opponent_data['fichas']
+    else:
+        print("Error: 'fichas' no esta definido en player_data")
+
+    call_amount = opponent_chips - player_chips
+
+    if call_amount > 0:
+        if player_chips >= call_amount:
+            player_data["fichas"] -= call_amount
+            opponent_data["fichas"] -= call_amount
+            print(f"{player_name} igualo la apuesta de {opponent_name} de {call_amount} fichas")
+        else:
+            print(f"{player_name} no tiene suficientes fichas para igualar la apuesta")
+    else:
+        print(f"{player_name} ya ha igualado la apuesta{opponent_name}, {player_data} fichas")
+
+    return player_data, opponent_data
 
 def check(player_data):
     if 'fichas' in player_data:
@@ -218,16 +230,17 @@ def check(player_data):
         print(f"Fichas del jugador: {maxbid}")
     else:
         print("Error: 'fichas' no esta definido en el diccionario player_data")
+
 def raaise():
     print("El jugador hizo un raise!")
 
-def fold(player_data, opponent_data):
-    player_name = player_data
-    opponent_name = list(opponent_data.keys())[0]
-    print(f"\n{player_name} se retira y pierde {player_data['fichas']}fichas \n")
-    print(f"\n{opponent_name} gana la partida")
-    return f"{player_name} se retira y pierde {player_data['fichas']}fichas  "
-    main()
+def fold(player_data):
+    player_name = list(player_data.keys())[0]
+    if player_data["fichas"] == 0:
+        print(f"{player_name} se retiró del juego.")
+    else:
+        print(f"{player_name} se retiró del juego con {player_data['fichas']} fichas.")
+    return None
 
 def bet():
     print("El jugador hizo un Bet!")
@@ -272,25 +285,19 @@ def river_betting_round(cards, player_data):
         print("Cartas en el río después del river:", river)
         # Aquí puedes simular la última ronda de apuestas
         call_option_fold("3", player_data, {})  # Llamar
-
         # Mostrar las cartas del río después del river
         print("Cartas en el río:", river)
     else:
         print("No hay cartas en el river")
 
     print("Cartas del río:", river)
-def turn_betting_round():
-    pass
-
-def handle_blinds():
-    pass
 
 def play_game_round(players, table):
     pre_flop_finished = False
 
     while True:
         if not pre_flop_finished:
-            turn_players(players, table, list(players.keys())[0], players[bot["name"]])
+            turn_players(players, table, list(players.keys())[0], players[list(players.keys())[0]])
             pre_flop_finished = True
         else:
             river_betting_round(table, players)
