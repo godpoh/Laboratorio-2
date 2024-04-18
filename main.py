@@ -1,3 +1,4 @@
+
 import random
 def show_main_menu():
     print("|------------------------------------------|")
@@ -297,10 +298,17 @@ def play_game_round(players, table):
 
     while True:
         if not pre_flop_finished:
-            turn_players(players, table, list(players.keys())[0], players[list(players.keys())[0]])
+            winner = turn_players(players, table, list(players.keys())[0], players[list(players.keys())[0]])
             pre_flop_finished = True
         else:
             river_betting_round(table, players)
             break
+
+        if winner == "Sheldon Cooper":
+            print("\n¡Sheldon Cooper es el ganador!")
+        else:
+            print(f"\n¡{winner} es el ganador!")
+
+        return winner
 
 main()
