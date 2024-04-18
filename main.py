@@ -180,12 +180,10 @@ def turn_players(players, table, current_player, player_data):
         else:
             print("\nTurno de Sheldon Cooper")
             sheldon_move = sheldon_decide_move(players["Sheldon Cooper"]["cartas"], table)
-            print("Sheldon Cooper selecciono: ",sheldon_move)
-            # if sheldon_move == "1":
-            #     player_data, opponent_data = call(player_data, opponent_data)
+            print("Sheldon Cooper selecciono: ", sheldon_move)
 
             if sheldon_move == "3":
-                fold_message = fold(players["Sheldon Cooper"])
+                fold_message = fold(players)
                 if fold_message is None:
                     return current_player
                 print(fold_message)
@@ -235,11 +233,11 @@ def raaise():
     print("El jugador hizo un raise!")
 
 def fold(player_data):
-    player_name = next(iter(player_data))  # Obtenemos el nombre del jugador
-    if player_data[player_name]["fichas"] == 0:
-        print(f"{player_name} se retiró del juego.")
-    else:
-        print(f"{player_name} se retiró del juego con {player_data[player_name]['fichas']} fichas.")
+    for player_name, player_info in player_data.items():
+        if player_info["fichas"] == 0:
+            print(f"{player_name} se retiró del juego.")
+        else:
+            print(f"{player_name} se retiró del juego con {player_info['fichas']} fichas.")
     return None
 
 def bet():
