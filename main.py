@@ -32,9 +32,6 @@ def start_game():
 
     return players, table
 
-
-
-
 def show_califications():
     pass
 def exit_game():
@@ -71,12 +68,9 @@ def create_shuffle_deck():
         random.shuffle(deck)
         return deck
 
-
-
 def initial_deal_cards(deck):
     players = {}
     player_name = validate_string_name_input("Ingrese su nombre: ")
-
 
     players[player_name] = {"fichas": 500, "cartas": []}
     players["Sheldon Cooper"] = {"fichas": 500, "cartas": []}
@@ -84,7 +78,7 @@ def initial_deal_cards(deck):
     for player, data in players.items():
         show_initial_chips(player, chip_conversion(data["fichas"]), data["cartas"])
 
-    print("Se te quitaron $25 (1 ficha verde) como pago inicial")
+    print("Se les quita a los jugadores $25 (1 ficha verde) como pago inicial")
 
     for player in players:
         players[player]["fichas"] -= 25
@@ -132,7 +126,6 @@ def show_initial_chips(player_name, initial_chips, cards ):
         for card in cards:
             print(card)
 
-
 def call_option_fold(last_move, player_data, opponent_data):
     while True:
         print("|------------------------------------------|")
@@ -152,15 +145,16 @@ def call_option_fold(last_move, player_data, opponent_data):
 
         if option == "1":
             if last_move == "1":
-                 player_data = call(player_data, opponent_data)
+                call(player_data, opponent_data)
             else:
                 check(player_data)
 
         elif option == "2":
             if last_move == "2":
-                raaise()
-            else:
                 bet()
+            else:
+
+                raaise(player_data, opponent_data)
         elif option == "3":
             fold(player_data)
             break
@@ -173,6 +167,9 @@ def call_option_fold(last_move, player_data, opponent_data):
             break
 
 def turn_players(players, table, current_player, player_data):
+    if 'apuesta' not in player_data:
+        player_data['apuesta'] = 0
+
     is_player_turn = True
     while True:
         if is_player_turn:
@@ -182,7 +179,6 @@ def turn_players(players, table, current_player, player_data):
             print("\nTurno de Sheldon Cooper")
             sheldon_move = sheldon_decide_move(players["Sheldon Cooper"]["cartas"], table)
             print("Sheldon Cooper selecciono: ", sheldon_move)
-
             if sheldon_move == "3":
                 fold_message = fold(players)
                 if fold_message is None:
@@ -199,29 +195,22 @@ def sheldon_decide_move(sheldon_cards, table_cards):
     return "3"
 
 def call(player_data, opponent_data):
-    print("El jugador hizo un Call!")
-    player_name = list(player_data.keys())[0]
-    opponent_name = list(opponent_data.keys())[0]
 
-    if 'fichas' in player_data:
-        player_chips = player_data['fichas']
-        opponent_chips = opponent_data['fichas']
-    else:
-        print("Error: 'fichas' no esta definido en player_data")
+    player_bet = player_data.get("apuesta", 0)
+    opponent_bet = opponent_data.get("apuesta", 0)
 
-    call_amount = opponent_chips - player_chips
+    amount_to_call = opponent_bet - player_bet
 
-    if call_amount > 0:
-        if player_chips >= call_amount:
-            player_data["fichas"] -= call_amount
-            opponent_data["fichas"] -= call_amount
-            print(f"{player_name} igualo la apuesta de {opponent_name} de {call_amount} fichas")
-        else:
-            print(f"{player_name} no tiene suficientes fichas para igualar la apuesta")
-    else:
-        print(f"{player_name} ya ha igualado la apuesta{opponent_name}, {player_data} fichas")
+    if player_data["fichas"] < amount_to_call:
+        print("No tienes suficientes fichas para igualar la apuesta:")
+        return
 
-    return player_data, opponent_data
+    player_data["apuesta"] = opponent_bet
+    player_data["fichas"] -= amount_to_call
+
+    opponent_data["fichas"] -= amount_to_call
+
+    print(f"Has igualado la apuesta de {amount_to_call} fichas")
 
 def check(player_data):
     if 'fichas' in player_data:
@@ -230,8 +219,31 @@ def check(player_data):
     else:
         print("Error: 'fichas' no esta definido en el diccionario player_data")
 
-def raaise():
-    print("El jugador hizo un raise!")
+def raaise(player_data, opponent_data):
+    while True:
+        try:
+            raise_amount = int(input("Ingrese la cantidad que desea subir la apuesta: "))
+            if raise_amount <= 0:
+                print("La cantidad debe ser mayor que cero.")
+                continue
+            elif raise_amount > player_data["fichas"]:
+                print("No tienes suficientes fichas para subir esa cantidad.")
+                continue
+            else:
+                break
+        except ValueError:
+            print("Por favor, ingrese un número entero.")
+
+    # Aumentar la apuesta del jugador
+    player_data["apuesta"] += raise_amount
+    player_data["fichas"] -= raise_amount
+
+    # Actualizar las fichas del oponente si es necesario
+    opponent_data["fichas"] += raise_amount
+
+    # Imprimir un mensaje indicando que el jugador ha subido la apuesta
+    print(f"Has subido la apuesta en {raise_amount} fichas.")
+
 
 def fold(player_data):
     for player_name, player_info in player_data.items():
@@ -239,12 +251,18 @@ def fold(player_data):
             print(f"{player_name} se retiró del juego.")
         else:
             print(f"{player_name} se retiró del juego con {player_info['fichas']} fichas.")
+
+    if "Sheldon Cooper" in player_data:
+        sheldon_chips = player_data["Sheldon Cooper"]["fichas"]
+        player_data["Sheldon Cooper"]["fichas"] = 0
+        player_data["J"]["fichas"] += sheldon_chips
+
     return None
 
 def bet():
     print("El jugador hizo un Bet!")
 
-def all_in(player_data, player_name):
+def all_in(player_data):
     print("El jugador hizo un All-in!")
     player_data["fichas"] = 0
 
