@@ -181,6 +181,42 @@ def turn_players(players, table, current_player, player_data, player_name):
             call_option_fold(sheldon_move, player_data, player_name)
         is_player_turn = not is_player_turn
 
+        # Verificar si el juego ha terminado
+        if len(table) == 5:
+            break
+
+    # Una vez que ambos jugadores han tomado sus decisiones, procedemos a la ronda de apuestas del río
+    river_betting_round(table, player_data, player_name)
+
+def river_betting_round(table, player_data, player_name):
+    river = []
+
+    if len(table) > 0:
+        print("Flop:")
+        for _ in range(3):
+            river.append(table.pop())
+        print("Cartas en el río después del flop:", river)
+        call_option_fold("3", player_data, player_name)
+        print("Cartas en el río:", river)
+
+    if len(table) > 0:
+        print("Turn:")
+        river.append(table.pop())
+        print("Cartas en el río después del turn:", river)
+        call_option_fold("3", player_data, player_name)
+        print("Cartas en el río:", river)
+
+    if len(table) > 0:
+        print("River:")
+        river.append(table.pop())
+        print("Cartas en el río después del river:", river)
+        call_option_fold("3", player_data, player_name)
+        print("Cartas en el río:", river)
+    else:
+        print("No hay cartas en el river")
+
+    print("Cartas del río:", river)
+
 def sheldon_decide_move(sheldon_cards, table_cards):
     return random.choice(["1", "2", "3", "4"])
 
@@ -227,7 +263,7 @@ def raaise(player_data):
     print(f"Has subido la apuesta en {raise_amount} fichas.")
 
 def fold(player_data, player_name):
-    if player_name == "Sheldon Cooper":
+    if not player_name == "Sheldon Cooper":
         print("Sheldon Cooper se retiro del juego")
     else:
         print(f"{player_name} se retiro del juego")
@@ -241,34 +277,7 @@ def all_in(player_data):
     print("El jugador hizo un All-in!")
     player_data["fichas"] = 0
 
-def river_betting_round(table, player_data, player_name):
-    river = []
 
-    if len(table) > 0:
-        print("Flop:")
-        for _ in range(3):
-            river.append(table.pop())
-        print("Cartas en el río después del flop:", river)
-        call_option_fold("3", player_data, player_name)
-        print("Cartas en el río:", river)
-
-    if len(table) > 0:
-        print("Turn:")
-        river.append(table.pop())
-        print("Cartas en el río después del turn:", river)
-        call_option_fold("3", player_data, player_name)
-        print("Cartas en el río:", river)
-
-    if len(table) > 0:
-        print("River:")
-        river.append(table.pop())
-        print("Cartas en el río después del river:", river)
-        call_option_fold("3", player_data, player_name)
-        print("Cartas en el río:", river)
-    else:
-        print("No hay cartas en el river")
-
-    print("Cartas del río:", river)
 
 def play_game_round(players, table, player_name):
     pre_flop_finished = False
@@ -277,7 +286,7 @@ def play_game_round(players, table, player_name):
         if not pre_flop_finished:
             winner = turn_players(players, table, list(players.keys())[0], players[list(players.keys())[0]], player_name)
             pre_flop_finished = True
-            river_betting_round(table, players)
+            river_betting_round(table, players, player_name)
         else:
             break
 
