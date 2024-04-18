@@ -3,6 +3,7 @@ import random
 class PokerGame:
     def __init__(self):
         self.players = {}
+        self.deck = []
 
     def show_main_menu(self):
         print("|------------------------------------------|")
@@ -23,13 +24,12 @@ class PokerGame:
             print("\nOpcion invalida. Intente de nuevo\n")
 
     def start_game(self):
-        shuffle_deck = self.create_shuffle_deck()
-        self.initial_deal_cards(shuffle_deck)
+        community_cards = self.initial_deal_cards()
 
         for player, data in self.players.items():
             self.show_initial_chips(player, self.chip_conversion(data["fichas"]), data["cartas"])
 
-        self.play_game_round()
+        self.play_game_round(community_cards)
 
     def show_califications(self):
         pass
@@ -38,7 +38,7 @@ class PokerGame:
         print("Saliendo del sistema")
         exit()
 
-    def show_player_cards(self, player_name ,cards):
+    def show_player_cards(self, player_name, cards):
         print(f"{player_name} tus cartas son: ")
         for card in cards:
             print(card)
@@ -46,7 +46,7 @@ class PokerGame:
     def validate_string_name_input(self, prompt):
         while True:
             user_input = input(prompt)
-            if not user_input.replace(" ","").isalpha() or not user_input.istitle():
+            if not user_input.replace(" ", "").isalpha() or not user_input.istitle():
                 print("Debe ser un nombre con solo letras, ademas debe empezar con una mayuscula inicial")
                 continue
             return user_input
@@ -58,7 +58,8 @@ class PokerGame:
             random.shuffle(deck)
             return deck
 
-    def initial_deal_cards(self, deck):
+    def initial_deal_cards(self):
+        self.deck = self.create_shuffle_deck()
         player_name = self.validate_string_name_input("Ingrese su nombre: ")
         self.players[player_name] = {"fichas": 500, "cartas": []}
         self.players["Sheldon Cooper"] = {"fichas": 500, "cartas": []}
@@ -71,12 +72,12 @@ class PokerGame:
         for player in self.players:
             self.players[player]["fichas"] -= 25
             for _ in range(2):
-                dealt_card = deck.pop()
+                dealt_card = self.deck.pop()
                 self.players[player]["cartas"].append(dealt_card)
 
         table = []
         for _ in range(5):
-            table.append(deck.pop())
+            table.append(self.deck.pop())
 
         return table
 
@@ -103,7 +104,7 @@ class PokerGame:
 
         return players_chips
 
-    def show_initial_chips(self, player_name, initial_chips, cards ):
+    def show_initial_chips(self, player_name, initial_chips, cards):
         print("\n|------------------------------------------|")
         print(f"|{player_name}, tiene las siguientes fichas ")
         for denomination, count in initial_chips.items():
@@ -236,7 +237,7 @@ class PokerGame:
         if "Sheldon Cooper" in player_data:
             sheldon_chips = player_data["Sheldon Cooper"]["fichas"]
             player_data["Sheldon Cooper"]["fichas"] = 0
-            player_data["J"]["fichas"] += sheldon_chips
+            player_data[player_name]["fichas"] += sheldon_chips
 
         return None
 
@@ -279,23 +280,49 @@ class PokerGame:
 
         print("Cartas del río:", river)
 
-    def play_game_round(self):
+    def play_game_round(self, community_cards):
         pre_flop_finished = False
+        round_count = 0
 
-        while True:
+        while round_count < 4:
+            round_count += 1
             if not pre_flop_finished:
-                winner = self.turn_players(list(self.players.keys())[0], self.players[list(self.players.keys())[0]], self.players["Sheldon Cooper"])
+                winner = self.turn_players(list(self.players.keys())[0], self.players[list(self.players.keys())[0]],
+                                           self.players["Sheldon Cooper"])
                 pre_flop_finished = True
             else:
-                self.river_betting_round([], self.players)
-                break
+                cards_on_table = []
+                if round_count == 1:
+                    print("\nFlop:")
+                    for _ in range(3):
+                        if self.deck:
+                            cards_on_table.append(self.deck.pop())
+                    if cards_on_table:
+                        print("Cartas en el río:", cards_on_table)
+                        self.river_betting_round(cards_on_table, self.players)
+                        # Después del flop, turno de Sheldon Cooper
+                        winner = self.turn_players("Sheldon Cooper", self.players["Sheldon Cooper"], self.players["J"])
+                elif round_count == 2:
+                    print("\nTurn:")
+                    if self.deck:
+                        cards_on_table.append(self.deck.pop())
+                    if cards_on_table:
+                        print("Cartas en el río:", cards_on_table)
+                        self.river_betting_round(cards_on_table, self.players)
+                elif round_count == 3:
+                    print("\nRiver:")
+                    if self.deck:
+                        cards_on_table.append(self.deck.pop())
+                    if cards_on_table:
+                        print("Cartas en el río:", cards_on_table)
+                        self.river_betting_round(cards_on_table, self.players)
 
-            if winner == "Sheldon Cooper":
-                print("\n¡Sheldon Cooper es el ganador!")
-            else:
-                print(f"\n¡{winner} es el ganador!")
+        if winner == "Sheldon Cooper":
+            print("\n¡Sheldon Cooper es el ganador!")
+        else:
+            print(f"\n¡{winner} es el ganador!")
 
-            return winner
+        return winner
 
 game = PokerGame()
 while True:
