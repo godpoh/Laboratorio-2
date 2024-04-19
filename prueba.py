@@ -1,5 +1,16 @@
 import random
 
+human_player = input("Ingrese su nombre: ")
+player = []
+bot = []
+table = []
+player_chips = 0
+current_bet = 0
+pot = 0
+big_blind = 10
+small_blind = 5
+dealer_position = 0  # Posición del dealer (botón del dealer), inicia en el jugador 0
+
 
 def show_main_menu():
     print("|------------------------------------------|")
@@ -16,6 +27,7 @@ def main():
         selection = input("Ingrese la opcion que desee: ")
         options_menu(selection)
 
+
 def options_menu(selection):
     if selection == "1":
         start_game()
@@ -26,68 +38,14 @@ def options_menu(selection):
     else:
         print("\nOpcion invalida. Intente de nuevo\n")
 
-def start_game():
-    human_player = validate_string_name_input("Ingrese su nombre: ")
-    shuffle_deck = create_shuffled_deck()
-    players, table = deal_initial_cards(shuffle_deck, human_player)
-
-    for player, data in players.items():
-        if player == human_player:
-            show_player_cards(player, data["cartas"])
-
-    current_player = next(iter(players))
-
-    play_game_round(players, current_player)
 
 def show_scores():
     pass
 
+
 def exit_game():
     print("Saliendo del sistema")
     exit()
-
-def show_player_cards(human_player, cards):
-    print(f"{human_player}, tus cartas son: ")
-    for card in cards:
-        print(card)
-
-def validate_string_name_input(prompt):
-    while True:
-        user_input = input(prompt)
-        if not user_input.replace(" ", "").isalpha() or not user_input.istitle():
-            print("Debe ser un nombre con solo letras, ademas debe empezar con una mayuscula inicial")
-            continue
-        return user_input
-
-def create_shuffled_deck():
-    with open("baraja.txt", "r") as file:
-        cards = file.readlines()
-        deck = [card.strip() for card in cards]
-        random.shuffle(deck)
-        return deck
-
-def deal_initial_cards(deck, player_name):
-    players = {}
-
-    players[player_name] = {"fichas": 500, "cartas": []}
-    players["Sheldon Cooper"] = {"fichas": 500, "cartas": []}
-
-    for player, data in players.items():
-        show_initial_chips(player, chip_conversion(data["fichas"]))
-
-    for player in players:
-        players[player]["fichas"] -= 25
-        for _ in range(2):
-            dealt_card = deck.pop()
-            players[player]["cartas"].append(dealt_card)
-
-    print("Se les otorgo a los jugadores 2 cartas y se les fue quitados $25, (1 ficha verde):\n ")
-
-            # print(players) # Comprobar que se este entregando las 2 cartas a los jugadores
-
-    table = [deck.pop() for _ in range(5)]
-
-    return players, table
 
 def chip_conversion(player_fichas):
     denominations = {
@@ -112,39 +70,115 @@ def chip_conversion(player_fichas):
 
     return players_chips
 
+def create_shuffle_deck():
+    with open("baraja.txt", "r") as file:
+        cards = file.readlines()
+        deck = [card.strip() for card in cards]
+        random.shuffle(deck)
+        return deck
 
-def show_initial_chips(human_player, initial_chips):
+
+def deal_cards_for_player(num_cards):
+    deck = create_shuffle_deck()
+    return [deck.pop() for _ in range(num_cards)]  # Saca las cartas del mazo mezclado
+
+
+def deal_cards_for_players(num_player, num_bot, num_table):
+    global player, bot
+    cards_player = deal_cards_for_player(num_cards=num_player)
+    player.extend(cards_player)
+    cards_cpu = deal_cards_for_player(num_cards=num_bot)
+    bot.extend(cards_cpu)
+    cards_table = deal_cards_for_player(num_cards=num_table)
+    table.extend(cards_table)
+
+
+def play_game():
+    play_round(1, 2, 2, 0)
+    play_round(2, 0, 0, 3)
+    play_round(3, 0, 0, 1)
+    play_round(4, 0, 0, 1)
+
+
+def play_round(round_num, num_player, num_bot, num_table):
+    global pot
+    print(f"{round_num} ronda")
+    deal_cards_for_players(num_player, num_bot, num_table)
+    print(f"{human_player}:", player)
+    print("Sheldon Cooper:", bot)
+
+    # Mostrar las cartas comunitarias
+    print("Cartas comunitarias:", table)
+
+    # Actualizar el bote (pot)
+    pot += sum([player_chips, current_bet])
+
+    # Aplicar las ciegas (blinds)
+    if round_num == 1:
+        apply_blinds()
+
+
+def apply_blinds():
+    global player_chips, current_bet, pot
+    # Aplicar la ciega pequeña (small blind)
+    player_chips -= small_blind
+    current_bet = small_blind
+    pot += small_blind
+    print(f"{human_player} pone la ciega pequeña de {small_blind} fichas.")
+
+    # Aplicar la ciega grande (big blind)
+    player_chips -= big_blind
+    current_bet = big_blind
+    pot += big_blind
+    print(f"Sheldon Cooper pone la ciega grande de {big_blind} fichas.")
+
+
+def show_initial_chips(human_player):
+    initial_chips = 500  # Cantidad inicial de fichas para cada jugador
+    player_chips = chip_conversion(initial_chips)
+    bot_chips = chip_conversion(initial_chips)
     print("\n|------------------------------------------|")
     print(f"|{human_player}, tiene las siguientes fichas ")
-    for denomination, count in initial_chips.items():
-        print(f"|{count} ficha(s) de {denomination:10}")
+    for key, value in player_chips.items():
+        print(f"|{key}: {value} ficha(s)")
+    print("|               TOTAL ($500)               ")
+    print("|------------------------------------------|")
+
+    print("\n|------------------------------------------|")
+    print("|Sheldon Cooper, tiene las siguientes fichas ")
+    for key, value in bot_chips.items():
+        print(f"|{key}: {value} ficha(s)")
     print("|               TOTAL ($500)               ")
     print("|------------------------------------------|\n")
 
 
 def evaluate_hands(cards_player, cards_opponent):
-    values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
-    def has_pair(hand):
+    card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13,
+                   'A': 14}
+
+    def pair(hand):
         card_values = [card[0] for card in hand]
         for value in card_values:
             if card_values.count(value) == 2:
                 return True
         return False
 
-    def has_four_of_a_kind(hand):
+    def four_of_a_kind(hand):
         card_values = [card[0] for card in hand]
         for value in card_values:
             if card_values.count(value) == 4:
                 return True
         return False
 
-    def has_full_house(hand):
-        return has_three_of_a_kind(hand) and has_pair(hand)
+    def full_house(hand):
+        return three_of_a_kind(hand) and pair(hand)
 
-    def has_straight(hand):
-        sorted_values = sorted([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in hand])
+    def straight(hand):
+        sorted_values = sorted(
+            [card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in hand])
         return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
-    def has_two_pairs(hand):
+
+    def two_pairs(hand):
         card_values = [card[0] for card in hand]
         pairs = 0
         for value in card_values:
@@ -152,205 +186,103 @@ def evaluate_hands(cards_player, cards_opponent):
                 pairs += 1
         return pairs == 2
 
-    def has_three_of_a_kind(hand):
+    def three_of_a_kind(hand):
         card_values = [card[0] for card in hand]
         for value in card_values:
             if card_values.count(value) == 3:
                 return True
         return False
 
-    def has_flush(hand):
+    def flush(hand):
         suit = hand[0][1]
         return all(card[1] == suit for card in hand)
 
-    def determine_best_hand(hand):
-        if has_straight(hand) and has_flush(hand):
+    def evaluate_best_hand(hand):
+        if straight(hand) and flush(hand):
             return "Escalera de Color!"
-        elif has_three_of_a_kind(hand):
+        elif three_of_a_kind(hand):
             return "Tres Iguales!"
-        elif has_pair(hand):
+        elif pair(hand):
             return "Par!"
-        elif has_full_house(hand):
+        elif full_house(hand):
             return "Full House"
-        elif has_two_pairs(hand):
+        elif two_pairs(hand):
             return "Dos par!"
-        elif has_flush(hand):
+        elif flush(hand):
             return "Color!"
-        elif has_straight(hand):
+        elif straight(hand):
             return "Escalera"
-        elif has_four_of_a_kind(hand):
+        elif four_of_a_kind(hand):
             return "Cuatro Iguales!"
         else:
             return "Carta Alta!"
 
-    best_hand_player = determine_best_hand(cards_player)
-    best_hand_opponent = determine_best_hand(cards_opponent)
+    best_hand_human_player = evaluate_best_hand(cards_player + table)
+    best_hand_bot_opponent = evaluate_best_hand(cards_opponent + table)
 
-    if best_hand_player == best_hand_opponent:
-        highest_card_player = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_player])
-        highest_card_opponent = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_opponent])
-        if highest_card_player > highest_card_opponent:
-            return "Jugador Humano"
-        elif highest_card_player < highest_card_opponent:
+    if best_hand_human_player == best_hand_bot_opponent:
+        highest_card_human_player = max(
+            [card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in
+             cards_player + table])
+        highest_card_bot_opponent = max(
+            [card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in
+             cards_opponent + table])
+        if highest_card_human_player > highest_card_bot_opponent:
+            return human_player
+        elif highest_card_human_player < highest_card_bot_opponent:
             return "Sheldon Cooper"
         else:
             return "Empate"
-    elif best_hand_player > best_hand_opponent:
-        return "Jugador Humano"
+    elif best_hand_human_player > best_hand_bot_opponent:
+        return human_player
     else:
         return "Sheldon Cooper"
 
 
-def play_betting_round(players, current_player):
-    # Obtener la cantidad de fichas del jugador actual
-    player_chips = players[current_player]["fichas"]
-
-    # Definir las opciones de apuesta
-    options = ["1", "2", "3", "4"]
-    # 1: Call - Igualar la apuesta actual
-    # 2: Raise - Aumentar la apuesta
-    # 3: Fold - Retirarse de la mano
-    # 4: All in - Apostar todas las fichas restantes
-
-    print("|------------------------------------------|")
-    print("|             Ronda de apuestas            |")
-    print("|------------------------------------------|")
-    print(f"Jugador actual: {current_player}")
-    print(f"Fichas disponibles: {player_chips}")
-
-    while True:
-        print("|------------------------------------------|")
-        print("|          Opciones de apuesta             |")
-        print("|                1. Call                   |")
-        print("|                2. Raise                  |")
-        print("|                3. Fold                   |")
-        print("|                4. All in                 |")
-        print("|------------------------------------------|")
-
-        option = input("Ingrese su opción: ")
-
-        if option not in options:
-            print("Opción inválida. Por favor, elija nuevamente.")
-            continue
-
-        if option == "1":
-            call()# Call
-            # Calcular la cantidad que el jugador necesita igualar
-            # y restar esa cantidad de fichas del jugador
-            # Implementar lógica para igualar la apuesta actual
-            break
-        elif option == "2":
-            raaise()# Raise
-            # Implementar lógica para permitir al jugador aumentar la apuesta
-            break
-        elif option == "3":  # Fold
-            # Implementar lógica para que el jugador se retire de la mano
-            players[current_player]["cartas"] = []  # Retirar las cartas del jugador
-            fold(players, current_player)  # Retorna "fold" para indicar que el jugador se retiró
-        elif option == "4":  # All in
-            # Implementar lógica para apostar todas las fichas restantes del jugador
-            all_in()
-            break
-
-    # Actualizar la cantidad de fichas del jugador en el diccionario de jugadores
-    # Implementar la lógica para transferir fichas, si es necesario
-
-
-def sheldon_move():
-    return random.choice(["1", "2", "4"])
-
-
-def play_game_round(players, current_player):
-    table = []
-    while True:
-        #Jugador humano
-        play_betting_round(players, current_player)
-
-        current_player = next_player(players, current_player)
-
-        #Jugador Sheldon Cooper(Bot) opciones
-        sheldon_option = sheldon_move()
-        print(f"\nSheldon Cooper elije la opcion: {sheldon_option}\n")
-
-        if sheldon_option == "1":
-            call()
-        elif sheldon_option == "2":
-            raaise()
-        elif sheldon_option == "3":
-            fold(players, current_player)
-        elif sheldon_option == "4":
-            all_in()
-
-        current_player = next_player(players, current_player)
-
-        if len(table) < 5:
-            table = flop_turn_river(table, players, current_player)
-        else:
-            break
-
-
-def next_player(players, current_player):
-    players_list = list(players.keys())
-    current_index = players_list.index(current_player)
-    next_index = (current_index + 1) % len(players_list)
-    return players_list[next_index]
-
-def flop_turn_river(deck, players, current_player):
-    river = []
-
-    if len(deck) >= 3:
-        print("Flop:")
-        for _ in range(3):
-            river.append(deck.pop())
-        print("Cartas en el río después del flop:", river)
-        play_betting_round(players, current_player)
-        print("Cartas en el río:", river)
-
-    if len(deck) >= 1:
-        print("Turn:")
-        river.append(deck.pop())
-        print("Cartas en el río después del turn:", river)
-        play_betting_round(players, current_player)
-        print("Cartas en el río:", river)
-
-    if len(deck) >= 1:
-        print("River:")
-        river.append(deck.pop())
-        print("Cartas en el río después del river:", river)
-        play_betting_round(players, current_player)
-        print("Cartas en el río:", river)
-    else:
-        print("No hay cartas en el river")
-
-    print("Cartas del río:", river)
-    return river
-
-
-
+def start_game():
+    global player_chips, current_bet, pot
+    show_initial_chips(human_player)
+    play_game()
+    winner = evaluate_hands(player, bot)
+    print(f"Ganador de la partida: {winner}")
+    exit_game()
 
 
 def call():
-    print("El jugador hace un call!")
+    global player_chips, current_bet, pot
+    if player_chips < current_bet:
+        print("No tienes suficientes fichas para igualar la apuesta.")
+    else:
+        chips_to_call = current_bet - big_blind
+        player_chips -= chips_to_call
+        pot += chips_to_call
+        print(f"{human_player} hace call.")
 
 
-def raaise():
-    print("El jugador hizo un raise")
+def raisee(amount):
+    global player_chips, current_bet, pot
+    if player_chips < amount:
+        print("No tienes suficientes fichas para subir la apuesta.")
+    else:
+        player_chips -= amount
+        current_bet += amount
+        pot += amount
+        print(f"{human_player} hace raise de {amount}.")
 
 
-def fold(players, current_player):
-    print(f"{current_player} se retiro")
-    remaining_chips = players[current_player]["fichas"]
-    print(f"Se retira con {remaining_chips} fichas restantes")
-    main()
+def fold():
+    print(f"{human_player} se retira.")
 
 
 def all_in():
-    print("El jugador hizo un All-in!")
+    global player_chips, current_bet, pot
+    if player_chips < current_bet:
+        all_in_amount = player_chips
+    else:
+        all_in_amount = player_chips + current_bet
+    player_chips = 0
+    pot += all_in_amount
+    print(f"{human_player} va All In con {all_in_amount} fichas.")
 
-
-
-
-
-# Lógica para la ronda de juego principal aquí...
 
 main()
