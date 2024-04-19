@@ -16,7 +16,6 @@ def main():
         selection = input("Ingrese la opcion que desee: ")
         options_menu(selection)
 
-
 def options_menu(selection):
     if selection == "1":
         start_game()
@@ -27,33 +26,28 @@ def options_menu(selection):
     else:
         print("\nOpcion invalida. Intente de nuevo\n")
 
-
 def start_game():
-    player_name = validate_string_name_input("Ingrese su nombre: ")
+    human_player = validate_string_name_input("Ingrese su nombre: ")
     shuffle_deck = create_shuffled_deck()
-    players, table = deal_initial_cards(shuffle_deck, player_name)
+    players, table = deal_initial_cards(shuffle_deck, human_player)
 
     for player, data in players.items():
-        if player == player_name:
+        if player == human_player:
             show_player_cards(player, data["cartas"])
 
-    play_game_round(players, table, shuffle_deck, player_name)
-
+    play_game_round()
 
 def show_scores():
     pass
-
 
 def exit_game():
     print("Saliendo del sistema")
     exit()
 
-
-def show_player_cards(player_name, cards):
-    print(f"{player_name}, tus cartas son: ")
+def show_player_cards(human_player, cards):
+    print(f"{human_player}, tus cartas son: ")
     for card in cards:
         print(card)
-
 
 def validate_string_name_input(prompt):
     while True:
@@ -63,14 +57,12 @@ def validate_string_name_input(prompt):
             continue
         return user_input
 
-
 def create_shuffled_deck():
     with open("baraja.txt", "r") as file:
         cards = file.readlines()
         deck = [card.strip() for card in cards]
         random.shuffle(deck)
         return deck
-
 
 def deal_initial_cards(deck, player_name):
     players = {}
@@ -79,9 +71,7 @@ def deal_initial_cards(deck, player_name):
     players["Sheldon Cooper"] = {"fichas": 500, "cartas": []}
 
     for player, data in players.items():
-        show_initial_chips(player, chip_conversion(data["fichas"]), data["cartas"])
-
-    print("Se les quita a los jugadores $25 (1 ficha verde) como pago inicial")
+        show_initial_chips(player, chip_conversion(data["fichas"]))
 
     for player in players:
         players[player]["fichas"] -= 25
@@ -89,10 +79,13 @@ def deal_initial_cards(deck, player_name):
             dealt_card = deck.pop()
             players[player]["cartas"].append(dealt_card)
 
+    print("Se les otorgo a los jugadores 2 cartas y se les fue quitados $25, (1 ficha verde):\n ")
+
+            # print(players) # Comprobar que se este entregando las 2 cartas a los jugadores
+
     table = [deck.pop() for _ in range(5)]
 
     return players, table
-
 
 def chip_conversion(player_fichas):
     denominations = {
@@ -118,20 +111,15 @@ def chip_conversion(player_fichas):
     return players_chips
 
 
-def show_initial_chips(player_name, initial_chips, cards):
+def show_initial_chips(human_player, initial_chips):
     print("\n|------------------------------------------|")
-    print(f"|{player_name}, tiene las siguientes fichas ")
+    print(f"|{human_player}, tiene las siguientes fichas ")
     for denomination, count in initial_chips.items():
         print(f"|{count} ficha(s) de {denomination:10}")
     print("|               TOTAL ($500)               ")
     print("|------------------------------------------|\n")
-    if cards:
-        print(f"{player_name}, tus cartas son: ")
-        for card in cards:
-            print(card)
 
-
-def call_option_fold(player_data, player_name):
+def call_option_fold():
     while True:
         print("|------------------------------------------|")
         print("|                1. Call                   |")
@@ -143,13 +131,13 @@ def call_option_fold(player_data, player_name):
         option = input("Ingrese el próximo movimiento: ")
 
         if option == "1":
-            call(player_data)
+            call()
         elif option == "2":
-            raaise(player_data)
+            raaise()
         elif option == "3":
-            fold(player_data, player_name)
+            fold()
         elif option == "4":
-            all_in(player_data)
+            all_in()
         else:
             print("Opción inválida")
 
@@ -159,7 +147,6 @@ def call_option_fold(player_data, player_name):
 
 def evaluate_hands(cards_player, cards_opponent):
     values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
-
     def has_pair(hand):
         card_values = [card[0] for card in hand]
         for value in card_values:
@@ -167,6 +154,19 @@ def evaluate_hands(cards_player, cards_opponent):
                 return True
         return False
 
+    def has_four_of_a_kind(hand):
+        card_values = [card[0] for card in hand]
+        for value in card_values:
+            if card_values.count(value) == 4:
+                return True
+        return False
+
+    def has_full_house(hand):
+        return has_three_of_a_kind(hand) and has_pair(hand)
+
+    def has_straight(hand):
+        sorted_values = sorted([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in hand])
+        return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
     def has_two_pairs(hand):
         card_values = [card[0] for card in hand]
         pairs = 0
@@ -182,43 +182,29 @@ def evaluate_hands(cards_player, cards_opponent):
                 return True
         return False
 
-    def has_straight(hand):
-        sorted_values = sorted([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in hand])
-        return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
-
     def has_flush(hand):
         suit = hand[0][1]
         return all(card[1] == suit for card in hand)
 
-    def has_full_house(hand):
-        return has_three_of_a_kind(hand) and has_pair(hand)
-
-    def has_four_of_a_kind(hand):
-        card_values = [card[0] for card in hand]
-        for value in card_values:
-            if card_values.count(value) == 4:
-                return True
-        return False
-
     def determine_best_hand(hand):
         if has_straight(hand) and has_flush(hand):
-            return "Straight Flush"
-        elif has_four_of_a_kind(hand):
-            return "Four of a Kind"
+            return "Escalera de Color!"
+        elif has_three_of_a_kind(hand):
+            return "Tres Iguales!"
+        elif has_pair(hand):
+            return "Par!"
         elif has_full_house(hand):
             return "Full House"
-        elif has_flush(hand):
-            return "Flush"
-        elif has_straight(hand):
-            return "Straight"
-        elif has_three_of_a_kind(hand):
-            return "Three of a Kind"
         elif has_two_pairs(hand):
-            return "Two Pairs"
-        elif has_pair(hand):
-            return "Pair"
+            return "Dos par!"
+        elif has_flush(hand):
+            return "Color!"
+        elif has_straight(hand):
+            return "Escalera"
+        elif has_four_of_a_kind(hand):
+            return "Cuatro Iguales!"
         else:
-            return "High Card"
+            return "Carta Alta!"
 
     best_hand_player = determine_best_hand(cards_player)
     best_hand_opponent = determine_best_hand(cards_opponent)
@@ -238,34 +224,42 @@ def evaluate_hands(cards_player, cards_opponent):
         return "Sheldon Cooper"
 
 
-def play_betting_round(players, table, current_player, player_name):
+def play_betting_round():
     pass
+
 
 # Lógica de la ronda de apuestas aquí...
 
-def sheldon_decide_move():
+
+def sheldon_move():
     return random.choice(["1", "2", "3", "4"])
 
-def call(player_data):
+
+def call():
     print("El jugador hace un call!")
 
-# Lógica para la acción de "Call" aquí...
 
-def raaise(player_data):
+def raaise():
     print("El jugador hizo un raise")
 
-# Lógica para la acción de "Raise" aquí...
 
-def fold(player_data, player_name):
-    print("El jugador se retiro!")
+def fold(players, current_player):
+    print(f"{current_player} se retiro")
+    remaining_chips = players[current_player]["fichas"]
+    print(f"Se retira con {remaining_chips} fichas restantes")
+    return remaining_chips
 
-# Lógica para la acción de "Fold" aquí...
-def all_in(player_data):
+
+
+def all_in():
     print("El jugador hizo un All-in!")
-    player_data["fichas"] = 0
 
-def play_game_round(players, table, deck, player_name):
-    pass
+
+def play_game_round():
+    call_option_fold()
+
+
+
 
 # Lógica para la ronda de juego principal aquí...
 
