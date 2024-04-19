@@ -101,7 +101,7 @@ def play_game():
 
 
 def play_round(round_num, num_player, num_bot, num_table):
-    global pot
+    global pot, player_chips, current_bet
     print(f"{round_num} ronda")
     deal_cards_for_players(num_player, num_bot, num_table)
     print(f"{human_player}:", player)
@@ -117,6 +117,37 @@ def play_round(round_num, num_player, num_bot, num_table):
     if round_num == 1:
         apply_blinds()
 
+    # Turno del jugador humano
+    print("\nTurno de", human_player)
+    action = input("Seleccione una acción (call, raise, fold, all-in): ").lower()
+    while action not in ["call", "raise", "fold", "all-in"]:
+        action = input("Acción no válida. Seleccione call, raise, fold, o all-in: ").lower()
+
+    if action == "call":
+        call()
+    elif action == "raise":
+        amount = int(input("Ingrese la cantidad para subir: "))
+        raisee(amount)
+    elif action == "fold":
+        fold()
+    elif action == "all-in":
+        all_in()
+
+    # Turno del bot
+    print("\nTurno de Sheldon Cooper")
+    bot_action = random.choice(["call", "raise", "fold", "all-in"])
+    print("Sheldon Cooper seleccionó:", bot_action)
+
+    if bot_action == "call":
+        call()
+    elif bot_action == "raise":
+        max_raise_amount = min(current_bet + player_chips,player_chips)
+        amount = random.randint(current_bet, max_raise_amount)
+        raisee(amount)
+    elif bot_action == "fold":
+        fold()
+    elif bot_action == "all-in":
+        all_in()
 
 def apply_blinds():
     global player_chips, current_bet, pot
