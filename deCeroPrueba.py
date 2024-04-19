@@ -4,7 +4,11 @@ human_player = input("Ingrese su nombre: ")
 player = []
 bot = []
 table = []
-big_blind = 25
+player_chips = 0  # Definimos la variable player_chips
+current_bet = 0  # Definimos la variable current_bet
+pot = 0  # Definimos la variable pot
+big_blind = 10
+
 def show_main_menu():
     print("|------------------------------------------|")
     print("|    Bienvenido al juego POKER HOLD'EM     |")
@@ -12,7 +16,6 @@ def show_main_menu():
     print("|        2. Mostrar puntuaciones           |")
     print("|        3. Salir                          |")
     print("|------------------------------------------|")
-
 
 def main():
     while True:
@@ -36,7 +39,6 @@ def show_scores():
 def exit_game():
     print("Saliendo del sistema")
     exit()
-
 
 def create_shuffle_deck():
     with open("baraja.txt", "r") as file:
@@ -73,7 +75,31 @@ def play_round(round_num, num_player, num_bot, num_table):
     print(f"{human_player}:", player)
     print("Sheldon Cooper:", bot)
 
-#chip_conversion y show_initial_chips son los encargados de otorgar las fichas y de mostrarlas
+    # Menu de opciones para el jugador humano
+    print("\nTurno de", human_player)
+    action = input("Seleccione una acción (call, raise, fold, all-in): ").lower()
+    while action not in ["call", "raise", "fold", "all-in"]:
+        action = input("Acción no válida. Seleccione call, raise, fold, o all-in: ").lower()
+
+    # Elección aleatoria de acción para el bot
+    bot_action = random.choice(["call", "raise", "fold", "all-in"])
+
+    # Ejecutar la acción seleccionada por el jugador humano
+    if action == "call":
+        call()
+    elif action == "raise":
+        amount = int(input("Ingrese la cantidad para subir: "))
+        raisee(amount)
+    elif action == "fold":
+        fold()
+    elif action == "all-in":
+        all_in()
+
+    # Ejecutar la acción seleccionada aleatoriamente por el bot
+    print("\nTurno de Sheldon Cooper")
+    print("Sheldon Cooper seleccionó:", bot_action)
+
+# chip_conversion y show_initial_chips son los encargados de otorgar las fichas y de mostrarlas
 def chip_conversion(player_fichas):
     denominations = {
         "blanca(1$)": 1,
@@ -115,8 +141,10 @@ def show_initial_chips(human_player):
     print("|               TOTAL ($500)               ")
     print("|------------------------------------------|\n")
 
+# EVALUA LAS CARTAS DE LOS JUGADORES Y ELIGE AL GANADOR MEDIANTE ALGORITMOS
 def evaluate_hands(cards_player, cards_opponent):
     card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+
     def pair(hand):
         card_values = [card[0] for card in hand]
         for value in card_values:
@@ -137,6 +165,7 @@ def evaluate_hands(cards_player, cards_opponent):
     def straight(hand):
         sorted_values = sorted([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in hand])
         return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
+
     def two_pairs(hand):
         card_values = [card[0] for card in hand]
         pairs = 0
@@ -193,19 +222,15 @@ def evaluate_hands(cards_player, cards_opponent):
     else:
         return "Sheldon Cooper"
 
-
-
 def start_game():
-    play_game()
+    global player_chips, current_bet, pot
     show_initial_chips(human_player)
+    play_game()
     winner = evaluate_hands(player, bot)
     print(f"Ganador de la partida: {winner}")
     exit_game()
 
-
-
-
-
+# FUNCIONES PARA JUGAR
 def call():
     global player_chips, current_bet, pot
     if player_chips < current_bet:
@@ -215,7 +240,6 @@ def call():
         player_chips -= chips_to_call
         pot += chips_to_call
         print(f"{human_player} hace call.")
-
 
 def raisee(amount):
     global player_chips, current_bet, pot
@@ -227,10 +251,8 @@ def raisee(amount):
         pot += amount
         print(f"{human_player} hace raise de {amount}.")
 
-
 def fold():
     print(f"{human_player} se retira.")
-
 
 def all_in():
     global player_chips, current_bet, pot
@@ -241,6 +263,5 @@ def all_in():
     player_chips = 0
     pot += all_in_amount
     print(f"{human_player} va All In con {all_in_amount} fichas.")
-
 
 main()

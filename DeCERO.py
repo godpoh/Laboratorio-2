@@ -196,8 +196,8 @@ def evaluate_hands(cards_player, cards_opponent):
 
 
 def start_game():
-    play_game()
     show_initial_chips(human_player)
+    play_game()
     winner = evaluate_hands(player, bot)
     print(f"Ganador de la partida: {winner}")
     exit_game()

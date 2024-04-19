@@ -1,292 +1,199 @@
 import random
+from collections import Counter
 
-human_player = input("Ingrese su nombre: ")
-player = []
-bot = []
-table = []
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.chips = 500
+        self.hand = []
+        self.best_hand = None
 
+    def receive_cards(self, cards):
+        self.hand.extend(cards)
 
-def show_main_menu():
-    print("|------------------------------------------|")
-    print("|    Bienvenido al juego POKER HOLD'EM     |")
-    print("|        1. Iniciar Juego                  |")
-    print("|        2. Mostrar puntuaciones           |")
-    print("|        3. Salir                          |")
-    print("|------------------------------------------|")
+    def reset_hand(self):
+        self.hand = []
+        self.best_hand = None
 
+class Game:
+    def __init__(self):
+        self.players = []
+        self.deck = self.create_deck()
+        self.pot = 0
+        self.community_cards = []
+        self.current_bet = 0
+        self.small_blind = 5
+        self.big_blind = 10
 
-def main():
-    while True:
-        show_main_menu()
-        selection = input("Ingrese la opcion que desee: ")
-        options_menu(selection)
+    def create_deck(self):
+        with open("baraja.txt", "r") as file:
+            cards = file.readlines()
+            deck = [card.strip() for card in cards]
+            random.shuffle(deck)
+            return deck
 
+    def deal_cards(self, num_cards):
+        cards = [self.deck.pop() for _ in range(num_cards)]
+        return cards
 
-def options_menu(selection):
-    if selection == "1":
-        start_game()
-    elif selection == "2":
-        show_scores()
-    elif selection == "3":
-        exit_game()
-    else:
-        print("\nOpcion invalida. Intente de nuevo\n")
+    def deal_initial_cards(self):
+        for player in self.players:
+            player.receive_cards(self.deal_cards(2))
 
+    def deal_community_cards(self, num_cards):
+        self.community_cards.extend(self.deal_cards(num_cards))
 
-def show_scores():
-    pass
+    def evaluate_hands(self):
+        for player in self.players:
+            player_hand = player.hand + self.community_cards
+            player.best_hand = self.evaluate_best_hand(player_hand)
 
+    def determine_winner(self):
+        player_hands = [(player, player.best_hand) for player in self.players]
+        best_hand_rank = max([hand[1] for hand in player_hands])
+        winners = [player for player, hand in player_hands if hand == best_hand_rank]
 
-def exit_game():
-    print("Saliendo del sistema")
-    exit()
+        if len(winners) == 1:
+            winner = winners[0]
+            winner.chips += self.pot
+            print(f"{winner.name} wins the pot of {self.pot} chips with {winner.best_hand}!")
+        else:
+            high_card_values = []
+            for winner in winners:
+                winner_hand = winner.hand + self.community_cards
+                high_card_values.append(max([self.get_card_value(card) for card in winner_hand]))
 
+            max_high_card_value = max(high_card_values)
+            final_winners = [winner for winner, high_card_value in zip(winners, high_card_values) if high_card_value == max_high_card_value]
 
-def create_shuffle_deck():
-    with open("baraja.txt", "r") as file:
-        cards = file.readlines()
-        deck = [card.strip() for card in cards]
-        random.shuffle(deck)
-        return deck
+            if len(final_winners) == 1:
+                winner = final_winners[0]
+                winner.chips += self.pot
+                print(f"{winner.name} wins the pot of {self.pot} chips with {winner.best_hand}!")
+            else:
+                split_pot = self.pot // len(final_winners)
+                for winner in final_winners:
+                    winner.chips += split_pot
+                    print(f"{winner.name} wins {split_pot} chips with {winner.best_hand}!")
 
+    def reset_game(self):
+        self.deck = self.create_deck()
+        self.pot = 0
+        self.community_cards = []
+        self.current_bet = 0
+        for player in self.players:
+            player.reset_hand()
 
-def deal_cards_for_player(num_cards):
-    deck = create_shuffle_deck()
-    return [deck.pop() for _ in range(num_cards)]  # Saca las cartas del mazo mezclado
+    def betting_round(self, round_name):
+        print(f"\n{round_name} betting round")
+        self.current_bet = 0
+        players_in_round = self.players.copy()
 
+        # Blinds
+        self.players[0].chips -= self.small_blind
+        self.pot += self.small_blind
+        self.players[1].chips -= self.big_blind
+        self.pot += self.big_blind
+        self.current_bet = self.big_blind
 
-def deal_cards_for_players(num_player, num_bot, num_table):
-    global player, bot
-    cards_player = deal_cards_for_player(num_cards=num_player)
-    player.extend(cards_player)
-    cards_cpu = deal_cards_for_player(num_cards=num_bot)
-    bot.extend(cards_cpu)
-    cards_table = deal_cards_for_player(num_cards=num_table)
-    player.extend(cards_table)
-    bot.extend(cards_table)
+        # Player actions
+        player_turn = 2
+        while len(players_in_round) > 1:
+            player = players_in_round[player_turn % len(players_in_round)]
+            print(f"\n{player.name}'s turn. Chips: {player.chips}, Current bet: {self.current_bet}")
+            action = self.get_player_action(player)
 
+            if action == "fold":
+                players_in_round.remove(player)
+            elif action == "call":
+                chips_to_call = self.current_bet - (self.big_blind if player_turn == 1 else 0)
+                player.chips -= chips_to_call
+                self.pot += chips_to_call
+            elif action == "raise":
+                raise_amount = int(input("Enter the raise amount: "))
+                if raise_amount <= self.current_bet or player.chips < raise_amount:
+                    print("Invalid raise amount. Please try again.")
+                    continue
+                player.chips -= raise_amount
+                self.pot += raise_amount
+                self.current_bet = raise_amount
+                players_in_round = [player] + players_in_round[:player_turn]
+            elif action == "all-in":
+                all_in_amount = player.chips + (self.big_blind if player_turn == 1 else 0)
+                player.chips = 0
+                self.pot += all_in_amount
+                players_in_round = [player] + players_in_round[:player_turn]
 
-# Tanto PLAY_GAME,PLAY_ROUND,deal_cards_for_players CONFORMAN LAS RONDAS Y AGREGAR CARTAS A LOS JUGADORES
+            player_turn += 1
+
+        self.players = players_in_round
+
+    def get_player_action(self, player):
+        action = input(f"{player.name}, enter your action (call, raise, fold, all-in): ").lower()
+        while action not in ["call", "raise", "fold", "all-in"]:
+            action = input("Invalid action. Please enter call, raise, fold, or all-in: ").lower()
+        return action
 
 def play_game():
-    play_round(1, 2, 2, 0)
-    play_round(2, 0, 0, 3)
-    play_round(3, 0, 0, 1)
-    play_round(4, 0, 0, 1)
+    game = Game()
+    print("Welcome to Texas Hold'em Poker!")
+    num_players = int(input("Enter the number of players (2-8): "))
 
-
-def play_round(round_num, num_player, num_bot, num_table):
-    print(f"{round_num} ronda")
-    deal_cards_for_players(num_player, num_bot, num_table)
-    print(f"{human_player}:", player)
-    print("Sheldon Cooper:", bot)
-
-
-# chip_conversion y show_initial_chips son los encargados de otorgar las fichas y de mostrarlas
-def chip_conversion(player_fichas):
-    denominations = {
-        "blanca(1$)": 1,
-        "roja(5$)": 5,
-        "azul(10$)": 10,
-        "verde(25$)": 25,
-        "negra(100$)": 100
-    }
-    players_chips = {}
-
-    remaining_chips = player_fichas
-    for denomination, value in denominations.items():
-        max_chips = min(remaining_chips // value, 20)
-        chips = random.randint(0, max_chips)
-        players_chips[denomination] = chips
-        remaining_chips -= chips * value
-
-    if remaining_chips > 0:
-        min_denomination = min(denominations.values())
-        players_chips["blanca(1$)"] += remaining_chips // min_denomination
-
-    return players_chips
-
-
-def show_initial_chips(human_player):
-    initial_chips = 500  # Cantidad inicial de fichas para cada jugador
-    player_chips = chip_conversion(initial_chips)
-    bot_chips = chip_conversion(initial_chips)
-    print("\n|------------------------------------------|")
-    print(f"|{human_player}, tiene las siguientes fichas ")
-    for key, value in player_chips.items():
-        print(f"|{key}: {value} ficha(s)")
-    print("|               TOTAL ($500)               ")
-    print("|------------------------------------------|")
-
-    print("\n|------------------------------------------|")
-    print("|Sheldon Cooper, tiene las siguientes fichas ")
-    for key, value in bot_chips.items():
-        print(f"|{key}: {value} ficha(s)")
-    print("|               TOTAL ($500)               ")
-    print("|------------------------------------------|\n")
-
-
-def evaluate_hands(cards_player, cards_opponent):
-    card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
-    def pair(hand):
-        card_values = [card[0] for card in hand]
-        for value in card_values:
-            if card_values.count(value) == 2:
-                return True
-        return False
-
-    def four_of_a_kind(hand):
-        card_values = [card[0] for card in hand]
-        for value in card_values:
-            if card_values.count(value) == 4:
-                return True
-        return False
-
-    def full_house(hand):
-        return three_of_a_kind(hand) and pair(hand)
-
-    def straight(hand):
-        sorted_values = sorted([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in hand])
-        return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
-    def two_pairs(hand):
-        card_values = [card[0] for card in hand]
-        pairs = 0
-        for value in card_values:
-            if card_values.count(value) == 2:
-                pairs += 1
-        return pairs == 2
-
-    def three_of_a_kind(hand):
-        card_values = [card[0] for card in hand]
-        for value in card_values:
-            if card_values.count(value) == 3:
-                return True
-        return False
-
-    def flush(hand):
-        suit = hand[0][1]
-        return all(card[1] == suit for card in hand)
-
-    def evaluate_best_hand(hand):
-        if straight(hand) and flush(hand):
-            return "Escalera de Color!"
-        elif three_of_a_kind(hand):
-            return "Tres Iguales!"
-        elif pair(hand):
-            return "Par!"
-        elif full_house(hand):
-            return "Full House"
-        elif two_pairs(hand):
-            return "Dos par!"
-        elif flush(hand):
-            return "Color!"
-        elif straight(hand):
-            return "Escalera"
-        elif four_of_a_kind(hand):
-            return "Cuatro Iguales!"
-        else:
-            return "Carta Alta!"
-
-    best_hand_human_player = evaluate_best_hand(cards_player)
-    best_hand_bot_opponent = evaluate_best_hand(cards_opponent)
-
-    if best_hand_human_player == best_hand_bot_opponent:
-        highest_card_human_player = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_player])
-        highest_card_bot_opponent = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_opponent])
-        if highest_card_human_player > highest_card_bot_opponent:
-            return "Jugador Humano"
-        elif highest_card_human_player < highest_card_bot_opponent:
-            return "Sheldon Cooper"
-        else:
-            return "Empate"
-    elif best_hand_human_player > best_hand_bot_opponent:
-        return "Jugador Humano"
-    else:
-        return "Sheldon Cooper"
-
-def player_decision():
-    global current_bet, pot
-    print(f"Apuesta actual: {current_bet}")
-    print(f"Sus fichas: {player_chips}")
-    print(f"Apuesta de Sheldon Cooper: {current_bet - big_blind}")
-    print("Su turno:")
-    print("1. Call")
-    print("2. Raise")
-    print("3. Fold")
-    print("4. All In")
-    decision = input("Ingrese su decisión: ")
-    if decision == "1":
-        call()
-    elif decision == "2":
-        amount = int(input("Ingrese la cantidad para aumentar la apuesta: "))
-        raisee(amount)
-    elif decision == "3":
-        fold()
-    elif decision == "4":
-        all_in()
-
-
-def start_game():
-    play_game()
-    show_initial_chips(human_player)
-    winner = evaluate_hands(player, bot)
-    print(f"Ganador de la partida: {winner}")
-
-
-def call():
-    global player_chips, current_bet, pot
-    if player_chips < current_bet:
-        print("No tienes suficientes fichas para igualar la apuesta.")
-    else:
-        chips_to_call = current_bet - big_blind
-        player_chips -= chips_to_call
-        pot += chips_to_call
-        print(f"{human_player} hace call.")
-        next_round()
-
-def raisee(amount):
-    global player_chips, current_bet, pot
-    if player_chips < amount:
-        print("No tienes suficientes fichas para subir la apuesta.")
-    else:
-        player_chips -= amount
-        current_bet += amount
-        pot += amount
-        print(f"{human_player} hace raise de {amount}.")
-        next_round()
-
-def fold():
-    print(f"{human_player} se retira.")
-    next_round()
-
-def all_in():
-    global player_chips, current_bet, pot
-    if player_chips < current_bet:
-        all_in_amount = player_chips
-    else:
-        all_in_amount = player_chips + current_bet
-    player_chips = 0
-    pot += all_in_amount
-    print(f"{human_player} va All In con {all_in_amount} fichas.")
-    next_round()
-
-def next_round():
-    global current_bet
-    if len(table) == 0:
-        # Ronda de preflop
-        play_round(2, 2, 0, 0)  # Por ejemplo, 2 cartas para cada jugador y ninguna para la mesa
-    elif len(table) == 3:
-        # Ronda de flop
-        play_round(0, 0, 3, 0)  # Por ejemplo, 3 cartas para la mesa
-    elif len(table) == 4:
-        # Ronda de turn
-        play_round(0, 0, 1, 0)  # Por ejemplo, 1 carta adicional para la mesa
-    elif len(table) == 5:
-        # Ronda de river
-        play_round(0, 0, 1, 0)  # Igual que la ronda de turn, solo con una carta más en la mesa
-    else:
-        # Finalizar juego o lógica adicional
+    if num_players < 2 or num_players > 8:
+        print("Invalid number of players. The game supports 2-8 players.")
         return
 
+    player_names = []
+    for i in range(num_players):
+        player_name = input(f"Enter the name of player {i + 1}: ")
+        player_names.append(player_name)
+        game.players.append(Player(player_name))
 
-main()
+    print("Let's play!")
+
+    while True:
+        game.deal_initial_cards()
+
+        # Pre-flop betting round
+        game.betting_round("Pre-flop")
+
+        if len(game.players) == 1:
+            print(f"{game.players[0].name} wins the pot of {game.pot} chips!")
+            game.reset_game()
+            continue
+
+        game.deal_community_cards(3)  # Flop
+
+        # Flop betting round
+        game.betting_round("Flop")
+
+        if len(game.players) == 1:
+            print(f"{game.players[0].name} wins the pot of {game.pot} chips!")
+            game.reset_game()
+            continue
+
+        game.deal_community_cards(1)  # Turn
+
+        # Turn betting round
+        game.betting_round("Turn")
+
+        if len(game.players) == 1:
+            print(f"{game.players[0].name} wins the pot of {game.pot} chips!")
+            game.reset_game()
+            continue
+
+        game.deal_community_cards(1)  # River
+
+        # River betting round
+        game.betting_round("River")
+
+        if len(game.players) == 1:
+            print(f"{game.players[0].name} wins the pot of {game.pot} chips!")
+            game.reset_game()
+            continue
+
+        game.evaluate_hands()
+        game.determine_winner()
+        game.reset_game()
+
+play_game()
