@@ -183,13 +183,13 @@ def evaluate_hands(cards_player, cards_opponent):
         highest_card_human_player = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_player])
         highest_card_bot_opponent = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_opponent])
         if highest_card_human_player > highest_card_bot_opponent:
-            return "Jugador Humano"
+            return human_player
         elif highest_card_human_player < highest_card_bot_opponent:
             return "Sheldon Cooper"
         else:
             return "Empate"
     elif best_hand_human_player > best_hand_bot_opponent:
-        return "Jugador Humano"
+        return human_player
     else:
         return "Sheldon Cooper"
 
@@ -198,7 +198,9 @@ def evaluate_hands(cards_player, cards_opponent):
 def start_game():
     play_game()
     show_initial_chips(human_player)
-
+    winner = evaluate_hands(player, bot)
+    print(f"Ganador de la partida: {winner}")
+    exit_game()
 
 
 

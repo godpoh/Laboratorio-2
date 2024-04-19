@@ -5,11 +5,6 @@ player = []
 bot = []
 table = []
 
-# Definir constantes para las apuestas
-big_blind = 25
-current_bet = 0
-pot = 0
-
 
 def show_main_menu():
     print("|------------------------------------------|")
@@ -85,7 +80,6 @@ def play_round(round_num, num_player, num_bot, num_table):
     deal_cards_for_players(num_player, num_bot, num_table)
     print(f"{human_player}:", player)
     print("Sheldon Cooper:", bot)
-    player_decision()
 
 
 # chip_conversion y show_initial_chips son los encargados de otorgar las fichas y de mostrarlas
