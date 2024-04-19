@@ -34,7 +34,7 @@ def start_game():
         if player == player_name:
             show_player_cards(player, data["cartas"])  # Mostrar las cartas solo para el jugador humano
 
-    play_game_round(players, table, player_name)
+    play_game_round(players, table, shuffle_deck, player_name)
 
 def show_califications():
     pass
@@ -159,122 +159,6 @@ def call_option_fold(last_move, player_data, player_name):
         if option in ["1", "2", "3", "4"]:
             break
 
-def play_betting_round(players, table, current_player, player_name):
-    if 'apuesta' not in players[player_name]:
-        players[player_name]['apuesta'] = 0
-
-    is_player_turn = True
-    while True:
-        if is_player_turn:
-            print("\nTu turno!\n")
-            call_option_fold("1", players[player_name], player_name)
-        else:
-            print("\nTurno de Sheldon Cooper")
-            sheldon_move = sheldon_decide_move(players["Sheldon Cooper"]["cartas"], table)
-            print("Sheldon Cooper seleccionó:", sheldon_move)
-            if sheldon_move == "3":
-                fold_message = fold(players[player_name], current_player)
-                if fold_message is None:
-                    return current_player
-                print(fold_message)
-                return "Sheldon Cooper"
-            call_option_fold(sheldon_move, players[player_name], player_name)
-        is_player_turn = not is_player_turn
-
-        # Verificar si el juego ha terminado
-        if len(table) == 5:
-            break
-
-    # Una vez que ambos jugadores han tomado sus decisiones, procedemos a la ronda de apuestas del río
-    river = []
-    for round_name in ["Flop", "Turn", "River"]:
-        if len(table) > 0:
-            print(round_name + ":")
-            if round_name == "River":
-                river.append(table.pop())
-            else:
-                for _ in range(3 if round_name == "Flop" else 1):
-                    river.append(table.pop())
-            print("Cartas en el río después de", round_name + ":", river)
-            call_option_fold("3", players[player_name], player_name)
-
-    print("Cartas del río:", river)
-
-def sheldon_decide_move():
-    return random.choice(["1", "2", "3", "4"])
-
-def call(player_data):
-    player_bet = player_data.get("apuesta", 0)
-    opponent_bet = 25
-
-    amount_to_call = opponent_bet - player_bet
-
-    if player_data["fichas"] < amount_to_call:
-        print("No tienes suficientes fichas para igualar la apuesta.")
-        return
-
-    player_data["apuesta"] = opponent_bet
-    player_data["fichas"] -= amount_to_call
-
-    print(f"Has igualado la apuesta de {amount_to_call} fichas")
-
-def check(player_data):
-    if 'fichas' in player_data:
-        maxbid = player_data["fichas"]
-        print(f"Fichas del jugador: {maxbid}")
-    else:
-        print("Error: 'fichas' no está definido en el diccionario player_data")
-
-def raaise(player_data):
-    while True:
-        try:
-            raise_amount = int(input("Ingrese la cantidad que desea subir la apuesta: "))
-            if raise_amount <= 0:
-                print("La cantidad debe ser mayor que cero.")
-                continue
-            elif raise_amount > player_data["fichas"]:
-                print("No tienes suficientes fichas para subir esa cantidad.")
-                continue
-            else:
-                break
-        except ValueError:
-            print("Por favor, ingrese un número entero.")
-
-    player_data["apuesta"] += raise_amount
-    player_data["fichas"] -= raise_amount
-
-    print(f"Has subido la apuesta en {raise_amount} fichas.")
-
-def fold(player_data, player_name):
-    if not player_name == "Sheldon Cooper":
-        print("Sheldon Cooper se retiro del juego")
-    else:
-        print(f"{player_name} se retiro del juego")
-
-def bet():
-    print("El jugador hizo un Bet!")
-
-def all_in(player_data):
-    print("El jugador hizo un All-in!")
-    player_data["fichas"] = 0
-
-def play_game_round(players, table, player_name):
-    pre_flop_finished = False
-
-    while True:
-        if not pre_flop_finished:
-            winner = play_betting_round(players, table, list(players.keys())[0], player_name)
-            pre_flop_finished = True
-        else:
-            break
-
-        if winner == "Sheldon Cooper":
-            print("\n¡Sheldon Cooper es el ganador!")
-        else:
-            print(f"\n¡{winner} es el ganador!")
-
-main()
-
 def evaluate_hands(cards_player, cards_opponent):
     values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
@@ -345,14 +229,147 @@ def evaluate_hands(cards_player, cards_opponent):
         highest_card_player = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_player])
         highest_card_opponent = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_opponent])
         if highest_card_player > highest_card_opponent:
-            return "player"
+            return "Jugador Humano"
         elif highest_card_player < highest_card_opponent:
-            return "opponent"
+            return "Sheldon Cooper"
         else:
-            return "tie"
+            return "Empate"
     elif best_hand_player > best_hand_opponent:
-        return "player"
+        return "Jugador Humano"
     else:
-        return "opponent"
+        return "Sheldon Cooper"
+
+def play_betting_round(players, table, current_player, player_name):
+    if 'apuesta' not in players[player_name]:
+        players[player_name]['apuesta'] = 0
+
+    is_player_turn = True
+    while True:
+        if is_player_turn:
+            print("\nTu turno!\n")
+            call_option_fold("1", players[player_name], player_name)
+        else:
+            print("\nTurno de Sheldon Cooper")
+            sheldon_move = sheldon_decide_move(players["Sheldon Cooper"]["cartas"], table)
+            print("Sheldon Cooper seleccionó:", sheldon_move)
+            if sheldon_move == "3":
+                fold_message = fold(players[player_name], current_player)
+                if fold_message is None:
+                    return current_player
+                print(fold_message)
+                return "Sheldon Cooper"
+            call_option_fold(sheldon_move, players[player_name], player_name)
+        is_player_turn = not is_player_turn
+
+        # Verificar si el juego ha terminado
+        if len(table) == 5:
+            cards_player = players[player_name]["cartas"] + table
+            cards_opponent = players["Sheldon Cooper"]["cartas"] + table
+            winner = evaluate_hands(cards_player, cards_opponent)
+            return winner
+
+    # Una vez que ambos jugadores han tomado sus decisiones, procedemos a la ronda de apuestas del río
+    river = []
+    for round_name in ["Flop", "Turn", "River"]:
+        if len(table) > 0:
+            print(round_name + ":")
+            if round_name == "River":
+                river.append(table.pop())
+            else:
+                for _ in range(3 if round_name == "Flop" else 1):
+                    river.append(table.pop())
+            print("Cartas en el río después de", round_name + ":", river)
+            call_option_fold("3", players[player_name], player_name)
+
+    print("Cartas del río:", river)
+
+def sheldon_decide_move():
+    return random.choice(["1", "2", "3", "4"])
+
+def call(player_data):
+    player_bet = player_data.get("apuesta", 0)
+    opponent_bet = 25
+
+    amount_to_call = opponent_bet - player_bet
+
+    if player_data["fichas"] < amount_to_call:
+        print("No tienes suficientes fichas para igualar la apuesta.")
+        return
+
+    player_data["apuesta"] = opponent_bet
+    player_data["fichas"] -= amount_to_call
+
+    print(f"Has igualado la apuesta de {amount_to_call} fichas")
+
+def check(player_data):
+    if 'fichas' in player_data:
+        maxbid = player_data["fichas"]
+        print(f"Fichas del jugador: {maxbid}")
+    else:
+        print("Error: 'fichas' no está definido en el diccionario player_data")
+
+def raaise(player_data):
+    while True:
+        try:
+            raise_amount = int(input("Ingrese la cantidad que desea subir la apuesta: "))
+            if raise_amount <= 0:
+                print("La cantidad debe1 ser mayor que cero.")
+                continue
+            elif raise_amount > player_data["fichas"]:
+                print("No tienes suficientes fichas para subir esa cantidad.")
+                continue
+            else:
+                break
+        except ValueError:
+            print("Por favor, ingrese un número entero.")
+
+    player_data["apuesta"] += raise_amount
+    player_data["fichas"] -= raise_amount
+
+    print(f"Has subido la apuesta en {raise_amount} fichas.")
+
+def fold(player_data, player_name):
+    if not player_name == "Sheldon Cooper":
+        print("Sheldon Cooper se retiro del juego")
+    else:
+        print(f"{player_name} se retiro del juego")
+
+def bet():
+    print("El jugador hizo un Bet!")
+
+def all_in(player_data):
+    print("El jugador hizo un All-in!")
+    player_data["fichas"] = 0
+
+def play_game_round(players, table, deck, player_name):
+    pre_flop_finished = False
+
+    while True:
+        if not pre_flop_finished:
+            winner = play_betting_round(players, table, list(players.keys())[0], player_name)
+            pre_flop_finished = True
+        else:
+            if len(table) < 5:
+                for round_name in ["Flop", "Turn", "River"]:
+                    if round_name == "River":
+                        table.append(deck.pop())
+                    else:
+                        for x in range(3 if round_name == "Flop" else 1):
+                            table.append(deck.pop())
+                    print(f"{round_name}: {table}")
+                winner = play_betting_round(players, table, list(players.keys())[0], player_name)
+            else:
+                break
+
+        if winner == "Sheldon Cooper":
+            print("\n¡Sheldon Cooper es el ganador!")
+        elif winner == "Empate":
+            print("Empate, ninguno de los 2 gana!")
+        else:
+            print(f"\n¡{winner} es el ganador!")
 
 main()
+
+
+
+
