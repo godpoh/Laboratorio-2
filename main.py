@@ -159,26 +159,26 @@ def call_option_fold(last_move, player_data, player_name):
         if option in ["1", "2", "3", "4"]:
             break
 
-def turn_players(players, table, current_player, player_data, player_name):
-    if 'apuesta' not in player_data:
-        player_data['apuesta'] = 0
+def play_betting_round(players, table, current_player, player_name):
+    if 'apuesta' not in players[player_name]:
+        players[player_name]['apuesta'] = 0
 
     is_player_turn = True
     while True:
         if is_player_turn:
             print("\nTu turno!\n")
-            call_option_fold("1", player_data, player_name)
+            call_option_fold("1", players[player_name], player_name)
         else:
             print("\nTurno de Sheldon Cooper")
             sheldon_move = sheldon_decide_move(players["Sheldon Cooper"]["cartas"], table)
-            print("Sheldon Cooper seleccionó: ", sheldon_move)
+            print("Sheldon Cooper seleccionó:", sheldon_move)
             if sheldon_move == "3":
-                fold_message = fold(player_data, current_player)
+                fold_message = fold(players[player_name], current_player)
                 if fold_message is None:
                     return current_player
                 print(fold_message)
                 return "Sheldon Cooper"
-            call_option_fold(sheldon_move, player_data, player_name)
+            call_option_fold(sheldon_move, players[player_name], player_name)
         is_player_turn = not is_player_turn
 
         # Verificar si el juego ha terminado
@@ -186,34 +186,17 @@ def turn_players(players, table, current_player, player_data, player_name):
             break
 
     # Una vez que ambos jugadores han tomado sus decisiones, procedemos a la ronda de apuestas del río
-    river_betting_round(table, player_data, player_name)
-
-def river_betting_round(table, player_data, player_name):
     river = []
-
-    if len(table) > 0:
-        print("Flop:")
-        for _ in range(3):
-            river.append(table.pop())
-        print("Cartas en el río después del flop:", river)
-        call_option_fold("3", player_data, player_name)
-        print("Cartas en el río:", river)
-
-    if len(table) > 0:
-        print("Turn:")
-        river.append(table.pop())
-        print("Cartas en el río después del turn:", river)
-        call_option_fold("3", player_data, player_name)
-        print("Cartas en el río:", river)
-
-    if len(table) > 0:
-        print("River:")
-        river.append(table.pop())
-        print("Cartas en el río después del river:", river)
-        call_option_fold("3", player_data, player_name)
-        print("Cartas en el río:", river)
-    else:
-        print("No hay cartas en el river")
+    for round_name in ["Flop", "Turn", "River"]:
+        if len(table) > 0:
+            print(round_name + ":")
+            if round_name == "River":
+                river.append(table.pop())
+            else:
+                for _ in range(3 if round_name == "Flop" else 1):
+                    river.append(table.pop())
+            print("Cartas en el río después de", round_name + ":", river)
+            call_option_fold("3", players[player_name], player_name)
 
     print("Cartas del río:", river)
 
@@ -280,9 +263,8 @@ def play_game_round(players, table, player_name):
 
     while True:
         if not pre_flop_finished:
-            winner = turn_players(players, table, list(players.keys())[0], players[list(players.keys())[0]], player_name)
+            winner = play_betting_round(players, table, list(players.keys())[0], player_name)
             pre_flop_finished = True
-            river_betting_round(table, players, player_name)
         else:
             break
 
@@ -291,89 +273,86 @@ def play_game_round(players, table, player_name):
         else:
             print(f"\n¡{winner} es el ganador!")
 
-        return winner
-
 main()
 
+def evaluate_hands(cards_player, cards_opponent):
+    values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
-# def evaluate_hands(cards_player, cards_opponent):
-#     values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
-#
-#     def has_pair(hand):
-#         card_values = [card[0] for card in hand]
-#         for value in card_values:
-#             if card_values.count(value) == 2:
-#                 return True
-#         return False
-#
-#     def has_two_pairs(hand):
-#         card_values = [card[0] for card in hand]
-#         pairs = 0
-#         for value in card_values:
-#             if card_values.count(value) == 2:
-#                 pairs += 1
-#         return pairs == 2
-#
-#     def has_three_of_a_kind(hand):
-#         card_values = [card[0] for card in hand]
-#         for value in card_values:
-#             if card_values.count(value) == 3:
-#                 return True
-#         return False
-#
-#     def has_straight(hand):
-#         sorted_values = sorted([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in hand])
-#         return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
-#
-#     def has_flush(hand):
-#         suit = hand[0][1]
-#         return all(card[1] == suit for card in hand)
-#
-#     def has_full_house(hand):
-#         return has_three_of_a_kind(hand) and has_pair(hand)
-#
-#     def has_four_of_a_kind(hand):
-#         card_values = [card[0] for card in hand]
-#         for value in card_values:
-#             if card_values.count(value) == 4:
-#                 return True
-#         return False
-#
-#     def determine_best_hand(hand):
-#         if has_straight(hand) and has_flush(hand):
-#             return "Straight Flush"
-#         elif has_four_of_a_kind(hand):
-#             return "Four of a Kind"
-#         elif has_full_house(hand):
-#             return "Full House"
-#         elif has_flush(hand):
-#             return "Flush"
-#         elif has_straight(hand):
-#             return "Straight"
-#         elif has_three_of_a_kind(hand):
-#             return "Three of a Kind"
-#         elif has_two_pairs(hand):
-#             return "Two Pairs"
-#         elif has_pair(hand):
-#             return "Pair"
-#         else:
-#             return "High Card"
-#
-#     best_hand_player = determine_best_hand(cards_player)
-#     best_hand_opponent = determine_best_hand(cards_opponent)
-#
-#     if best_hand_player == best_hand_opponent:
-#         highest_card_player = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_player])
-#         highest_card_opponent = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_opponent])
-#         if highest_card_player > highest_card_opponent:
-#             return "player"
-#         elif highest_card_player < highest_card_opponent:
-#             return "opponent"
-#         else:
-#             return "tie"
-#     elif best_hand_player > best_hand_opponent:
-#         return "player"
-#     else:
-#         return "opponent"
+    def has_pair(hand):
+        card_values = [card[0] for card in hand]
+        for value in card_values:
+            if card_values.count(value) == 2:
+                return True
+        return False
+
+    def has_two_pairs(hand):
+        card_values = [card[0] for card in hand]
+        pairs = 0
+        for value in card_values:
+            if card_values.count(value) == 2:
+                pairs += 1
+        return pairs == 2
+
+    def has_three_of_a_kind(hand):
+        card_values = [card[0] for card in hand]
+        for value in card_values:
+            if card_values.count(value) == 3:
+                return True
+        return False
+
+    def has_straight(hand):
+        sorted_values = sorted([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in hand])
+        return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
+
+    def has_flush(hand):
+        suit = hand[0][1]
+        return all(card[1] == suit for card in hand)
+
+    def has_full_house(hand):
+        return has_three_of_a_kind(hand) and has_pair(hand)
+
+    def has_four_of_a_kind(hand):
+        card_values = [card[0] for card in hand]
+        for value in card_values:
+            if card_values.count(value) == 4:
+                return True
+        return False
+
+    def determine_best_hand(hand):
+        if has_straight(hand) and has_flush(hand):
+            return "Straight Flush"
+        elif has_four_of_a_kind(hand):
+            return "Four of a Kind"
+        elif has_full_house(hand):
+            return "Full House"
+        elif has_flush(hand):
+            return "Flush"
+        elif has_straight(hand):
+            return "Straight"
+        elif has_three_of_a_kind(hand):
+            return "Three of a Kind"
+        elif has_two_pairs(hand):
+            return "Two Pairs"
+        elif has_pair(hand):
+            return "Pair"
+        else:
+            return "High Card"
+
+    best_hand_player = determine_best_hand(cards_player)
+    best_hand_opponent = determine_best_hand(cards_opponent)
+
+    if best_hand_player == best_hand_opponent:
+        highest_card_player = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_player])
+        highest_card_opponent = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_opponent])
+        if highest_card_player > highest_card_opponent:
+            return "player"
+        elif highest_card_player < highest_card_opponent:
+            return "opponent"
+        else:
+            return "tie"
+    elif best_hand_player > best_hand_opponent:
+        return "player"
+    else:
+        return "opponent"
 
 main()
