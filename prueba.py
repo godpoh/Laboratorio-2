@@ -35,7 +35,9 @@ def start_game():
         if player == human_player:
             show_player_cards(player, data["cartas"])
 
-    play_game_round()
+    current_player = next(iter(players))
+
+    play_game_round(players, current_player)
 
 def show_scores():
     pass
@@ -119,31 +121,6 @@ def show_initial_chips(human_player, initial_chips):
     print("|               TOTAL ($500)               ")
     print("|------------------------------------------|\n")
 
-def call_option_fold():
-    while True:
-        print("|------------------------------------------|")
-        print("|                1. Call                   |")
-        print("|                2. Raise                  |")
-        print("|                3. Fold                   |")
-        print("|                4. All in                 |")
-        print("|------------------------------------------|")
-
-        option = input("Ingrese el próximo movimiento: ")
-
-        if option == "1":
-            call()
-        elif option == "2":
-            raaise()
-        elif option == "3":
-            fold()
-        elif option == "4":
-            all_in()
-        else:
-            print("Opción inválida")
-
-        if option in ["1", "2", "3", "4"]:
-            break
-
 
 def evaluate_hands(cards_player, cards_opponent):
     values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
@@ -224,8 +201,67 @@ def evaluate_hands(cards_player, cards_opponent):
         return "Sheldon Cooper"
 
 
-def play_betting_round():
-    pass
+def play_betting_round(players, current_player):
+    # Obtener la cantidad de fichas del jugador actual
+    player_chips = players[current_player]["fichas"]
+
+    # Definir las opciones de apuesta
+    options = ["1", "2", "3", "4"]
+    # 1: Call - Igualar la apuesta actual
+    # 2: Raise - Aumentar la apuesta
+    # 3: Fold - Retirarse de la mano
+    # 4: All in - Apostar todas las fichas restantes
+
+    print("|------------------------------------------|")
+    print("|             Ronda de apuestas            |")
+    print("|------------------------------------------|")
+    print(f"Jugador actual: {current_player}")
+    print(f"Fichas disponibles: {player_chips}")
+
+    while True:
+        print("|------------------------------------------|")
+        print("|          Opciones de apuesta             |")
+        print("|                1. Call                   |")
+        print("|                2. Raise                  |")
+        print("|                3. Fold                   |")
+        print("|                4. All in                 |")
+        print("|------------------------------------------|")
+
+        option = input("Ingrese su opción: ")
+
+        if option not in options:
+            print("Opción inválida. Por favor, elija nuevamente.")
+            continue
+
+        if option == "1":  # Call
+            # Calcular la cantidad que el jugador necesita igualar
+            # y restar esa cantidad de fichas del jugador
+            # Implementar lógica para igualar la apuesta actual
+            print("El jugador hace un call!")
+            break
+        elif option == "2":  # Raise
+            # Implementar lógica para permitir al jugador aumentar la apuesta
+            print("El jugador hace un raise!")
+            break
+        elif option == "3":  # Fold
+            # Implementar lógica para que el jugador se retire de la mano
+            print("El jugador se retira!")
+            players[current_player]["cartas"] = []  # Retirar las cartas del jugador
+            return "fold"  # Retorna "fold" para indicar que el jugador se retiró
+        elif option == "4":  # All in
+            # Implementar lógica para apostar todas las fichas restantes del jugador
+            print("El jugador hace un All-in!")
+            break
+
+    # Actualizar la cantidad de fichas del jugador en el diccionario de jugadores
+    # Implementar la lógica para transferir fichas, si es necesario
+
+def next_player(players, current_player):
+    players_list = list(players.keys())
+    current_index = players_list.index(current_player)
+    next_index = (current_index + 1) % len(players_list)
+    return players_list[next_index]
+
 
 
 # Lógica de la ronda de apuestas aquí...
@@ -255,8 +291,8 @@ def all_in():
     print("El jugador hizo un All-in!")
 
 
-def play_game_round():
-    call_option_fold()
+def play_game_round(players, current_player):
+    play_betting_round(players, current_player)
 
 
 
