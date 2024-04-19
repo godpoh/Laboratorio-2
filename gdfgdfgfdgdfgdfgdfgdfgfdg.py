@@ -48,6 +48,7 @@ def exit_game():
     print("Saliendo del sistema")
     exit()
 
+
 def chip_conversion(player_fichas):
     denominations = {
         "blanca(1$)": 1,
@@ -71,34 +72,12 @@ def chip_conversion(player_fichas):
 
     return chips_dict
 
-def initialize_bot_chips(player_fichas):
-    denominations = {
-        "blanca(1$)": 1,
-        "roja(5$)": 5,
-        "azul(10$)": 10,
-        "verde(25$)": 25,
-        "negra(100$)": 100
-    }
-    chips_dict = {}
-
-    remaining_chips = player_fichas
-    for denomination, value in denominations.items():
-        max_chips = min(remaining_chips // value, 20)
-        chips = random.randint(0, max_chips)
-        chips_dict[denomination] = chips
-        remaining_chips -= chips * value
-
-    if remaining_chips > 0:
-        min_denomination = min(denominations.values())
-        chips_dict["blanca(1$)"] += remaining_chips // min_denomination
-
-    return chips_dict
 
 def show_initial_chips(human_player):
     initial_chips = 500  # Cantidad inicial de fichas para cada jugador
     global player_chips, bot_chips
     player_chips = chip_conversion(initial_chips)
-    bot_chips = initialize_bot_chips(initial_chips)
+    bot_chips = chip_conversion(initial_chips)
     print("\n|------------------------------------------|")
     print(f"|{human_player}, tiene las siguientes fichas ")
     for key, value in player_chips.items():
@@ -112,6 +91,7 @@ def show_initial_chips(human_player):
         print(f"|{key}: {value} ficha(s)")
     print("|               TOTAL ($500)               ")
     print("|------------------------------------------|\n")
+
 
 def create_shuffle_deck():
     with open("baraja.txt", "r") as file:
@@ -145,17 +125,16 @@ def play_game():
 
 def play_round(round_num, num_player, num_bot, num_table):
     global pot, current_bet
-    print(f"{round_num} ronda")
+    print(f"\n{round_num} RONDA\n")
     deal_cards_for_players(num_player, num_bot, num_table)
-    print(f"{human_player}:", player)
-    print("Sheldon Cooper:", bot)
+    print(f"{human_player}: {player}")
+    print("Sheldon Cooper: Incognito, Incognito", )
 
     # Mostrar las cartas comunitarias
     print("Cartas comunitarias:", table)
 
     # Actualizar el bote (pot)
-    current_bet = big_blind
-    pot += big_blind
+    pot += current_bet
 
     # Aplicar las ciegas (blinds)
     if round_num == 1:
@@ -175,7 +154,7 @@ def play_round(round_num, num_player, num_bot, num_table):
     elif action == "fold":
         fold(human_player)
     elif action == "all-in":
-        all_in()
+        all_in(player)
 
     # Turno del bot
     print("\nTurno de Sheldon Cooper")
@@ -185,13 +164,77 @@ def play_round(round_num, num_player, num_bot, num_table):
     if bot_action == "call":
         call()
     elif bot_action == "raise":
-        max_raise_amount = min(current_bet + player_chips["blanca(1$)"], player_chips["blanca(1$)"])
+        max_raise_amount = min(current_bet + sum(player_chips.values()), sum(player_chips.values()))
+        if current_bet == 0:  # Asegurarse de que current_bet tenga un valor válido
+            current_bet = big_blind  # Asignar la ciega grande como apuesta inicial
         amount = random.randint(current_bet, max_raise_amount)
         raisee(amount)
-    elif bot_action == "fold":
-        fold("Sheldon Cooper")
+
     elif bot_action == "all-in":
-        all_in()
+        all_in(player)
+
+
+def call():
+    global player_chips, current_bet, pot
+    if player_chips["blanca(1$)"] < current_bet:
+        print("No tienes suficientes fichas para igualar la apuesta.")
+        # Apostar todas las fichas restantes
+        all_in_amount = player_chips["blanca(1$)"]
+        player_chips["blanca(1$)"] = 0
+        pot += all_in_amount
+        print(f"{human_player} va All-In con {all_in_amount} fichas para seguir jugando.")
+        print(f"Fichas en juego: {pot}")
+    else:
+        chips_to_call = current_bet
+        player_chips["blanca(1$)"] -= chips_to_call
+        pot += chips_to_call
+        print(f"{human_player} iguala la apuesta de {current_bet} fichas.")
+        print(f"Fichas en juego: {pot}")
+
+def raisee(amount):
+    global player_chips, current_bet, pot
+    if player_chips["blanca(1$)"] < amount:
+        print("No tienes suficientes fichas para subir la apuesta.")
+        # Apostar todas las fichas restantes
+        all_in_amount = player_chips["blanca(1$)"]
+        player_chips["blanca(1$)"] = 0
+        current_bet += all_in_amount
+        pot += all_in_amount
+        print(f"{human_player} va All-In con {all_in_amount} fichas para seguir jugando.")
+        print(f"Fichas en juego: {pot}\n")
+    else:
+        player_chips["blanca(1$)"] -= amount
+        current_bet += amount
+        pot += amount
+        print(f"{human_player} hace raise de {amount}.")
+        print(f"Fichas en juego: {pot}\n")
+
+
+def fold(player_name):
+    global player_chips, bot_chips, pot, current_bet
+    if player_name == human_player:
+        print(f"{player_name} se retira. Sheldon Cooper gana la partida.")
+        bot_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al bot
+    else:
+        print(f"{player_name} se retira. {human_player} gana la partida.")
+        player_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al jugador humano
+    print(f"Suma de lo apostado por ambos jugadores: {pot + current_bet}")
+    total_winnings = sum(player_chips.values())
+    print(f"{human_player} ganó un total de {total_winnings} fichas.")
+    exit_game()
+
+
+def all_in(player):
+    global pot, player_chips, bot_chips, current_bet
+    all_in_amount = sum(player_chips.values()) if player == human_player else sum(bot_chips.values())
+    if player == human_player:
+        player_chips = {denomination: 0 for denomination in player_chips}  # Vaciar las fichas del jugador
+    else:
+        bot_chips = {denomination: 0 for denomination in bot_chips}  # Vaciar las fichas del bot
+    pot += all_in_amount
+    current_bet += all_in_amount  # Actualizar la apuesta actual (current_bet)
+    print(f"{human_player} va All In con {all_in_amount} fichas.")
+    print(f"Fichas en juego: {pot}")
 
 def apply_blinds():
     global player_chips, current_bet, pot
@@ -300,54 +343,10 @@ def start_game():
     show_initial_chips(human_player)
     play_game()
     winner = evaluate_hands(player, bot)
+    print(f"\n{human_player}: {player}")
+    print(f"Sheldon Cooper: {bot} \n")
     print(f"Ganador de la partida: {winner}")
     exit_game()
-
-
-def call():
-    global current_bet, pot
-    if player_chips["blanca(1$)"] < current_bet:
-        print("No tienes suficientes fichas para igualar la apuesta.")
-    else:
-        chips_to_call = current_bet
-        player_chips["blanca(1$)"] -= chips_to_call
-        pot += chips_to_call
-        print(f"{human_player} hace call.")
-
-
-def raisee(amount):
-    global current_bet, pot
-    if player_chips["blanca(1$)"] < amount:
-        print("No tienes suficientes fichas para subir la apuesta.")
-    else:
-        player_chips["blanca(1$)"] -= amount
-        current_bet += amount
-        pot += amount
-        print(f"{human_player} hace raise de {amount}.")
-
-
-def fold(player_name):
-    global pot
-    if player_name == human_player:
-        print(f"{player_name} se retira. Sheldon Cooper gana la partida.")
-        print(f"Suma de lo apostado por ambos jugadores: {current_bet + big_blind}")
-        bot_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al bot
-    else:
-        print(f"{player_name} se retira. {human_player} gana la partida.")
-        print(f"Suma de lo apostado por ambos jugadores: {current_bet + big_blind}")
-        player_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al jugador humano
-    exit_game()
-
-
-def all_in():
-    global pot
-    if player_chips["blanca(1$)"] < current_bet:
-        all_in_amount = player_chips["blanca(1$)"]
-    else:
-        all_in_amount = player_chips["blanca(1$)"] + current_bet
-    player_chips["blanca(1$)"] = 0
-    pot += all_in_amount
-    print(f"{human_player} va All In con {all_in_amount} fichas.")
 
 
 main()
