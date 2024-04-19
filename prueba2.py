@@ -18,7 +18,8 @@ def main():
 
 def options_menu(selection):
     if selection == "1":
-        start_game()
+        deck = create_shuffled_deck()
+        start_game(deck)
     elif selection == "2":
         show_scores()
     elif selection == "3":
@@ -26,10 +27,10 @@ def options_menu(selection):
     else:
         print("\nOpcion invalida. Intente de nuevo\n")
 
-def start_game():
+def start_game(deck):  # Añade deck como parámetro
     human_player = validate_string_name_input("Ingrese su nombre: ")
-    shuffle_deck = create_shuffled_deck()
-    players, table = deal_initial_cards(shuffle_deck, human_player)
+    players, table = deal_initial_cards(deck, human_player)  # Pasa el mazo como argumento
+    flop_turn_river_table(deck, "Flop")  # Mostrar el flop inicial
 
     for player, data in players.items():
         if player == human_player:
@@ -37,7 +38,8 @@ def start_game():
 
     current_player = next(iter(players))
 
-    play_game_round(players, current_player)
+    for round_number in range(3):
+        play_game_round(players, current_player, round_number + 1, deck)  # Pasa el mazo como argumento
 
 def show_scores():
     pass
@@ -123,7 +125,7 @@ def show_initial_chips(human_player, initial_chips):
 
 
 def evaluate_hands(cards_player, cards_opponent):
-    values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+    card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
     def has_pair(hand):
         card_values = [card[0] for card in hand]
         for value in card_values:
@@ -142,7 +144,7 @@ def evaluate_hands(cards_player, cards_opponent):
         return has_three_of_a_kind(hand) and has_pair(hand)
 
     def has_straight(hand):
-        sorted_values = sorted([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in hand])
+        sorted_values = sorted([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in hand])
         return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
     def has_two_pairs(hand):
         card_values = [card[0] for card in hand]
@@ -187,8 +189,8 @@ def evaluate_hands(cards_player, cards_opponent):
     best_hand_opponent = determine_best_hand(cards_opponent)
 
     if best_hand_player == best_hand_opponent:
-        highest_card_player = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_player])
-        highest_card_opponent = max([values[card.split()[0]] if card.split()[0] in values else int(card.split()[0]) for card in cards_opponent])
+        highest_card_player = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_player])
+        highest_card_opponent = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_opponent])
         if highest_card_player > highest_card_opponent:
             return "Jugador Humano"
         elif highest_card_player < highest_card_opponent:
@@ -258,19 +260,47 @@ def play_betting_round(players, current_player):
 
 def sheldon_move():
     return random.choice(["1", "2", "4"])
+def flop_turn_river_table(deck, stage):
+    river = []
+
+    if stage == "Flop":
+        if len(deck) >= 3:
+            print("Flop:")
+            for _ in range(3):
+                river.append(deck.pop())
+            print("Cartas en el río:", river)
+    elif stage == "Turn":
+        if len(deck) >= 1:
+            print("Turn:")
+            river.append(deck.pop())
+            print("Cartas en el río:", river)
+    elif stage == "River":
+        if len(deck) >= 1:
+            print("River:")
+            river.append(deck.pop())
+            print("Cartas en el río:", river)
+    else:
+        print("Etapa de juego no válida")
+
+    return river
 
 
-def play_game_round(players, current_player):
+def play_game_round(players, current_player, round_number, deck):  # Añade deck como parámetro
     table = []
     while True:
-        #Jugador humano
         play_betting_round(players, current_player)
+
+        if round_number == 1:
+            flop_turn_river_table(deck, "Flop")
+        elif round_number == 2:
+            flop_turn_river_table(deck, "Turn")
+        elif round_number == 3:
+            flop_turn_river_table(deck, "River")
 
         current_player = next_player(players, current_player)
 
-        #Jugador Sheldon Cooper(Bot) opciones
         sheldon_option = sheldon_move()
-        print(f"\nSheldon Cooper elije la opcion: {sheldon_option}\n")
+        print(f"\nSheldon Cooper elige la opción: {sheldon_option}\n")
 
         if sheldon_option == "1":
             call()
@@ -281,12 +311,14 @@ def play_game_round(players, current_player):
         elif sheldon_option == "4":
             all_in()
 
-        current_player = next_player(players, current_player)
+        if round_number == 1:
+            flop_turn_river_table(deck, "Flop")
+        elif round_number == 2:
+            flop_turn_river_table(deck, "Turn")
+        elif round_number == 3:
+            flop_turn_river_table(deck, "River")
 
-        if len(table) < 5:
-            table = flop_turn_river(table, players, current_player)
-        else:
-            break
+        current_player = next_player(players, current_player)
 
 
 def next_player(players, current_player):
@@ -294,39 +326,6 @@ def next_player(players, current_player):
     current_index = players_list.index(current_player)
     next_index = (current_index + 1) % len(players_list)
     return players_list[next_index]
-
-def flop_turn_river(deck, players, current_player):
-    river = []
-
-    if len(deck) >= 3:
-        print("Flop:")
-        for _ in range(3):
-            river.append(deck.pop())
-        print("Cartas en el río después del flop:", river)
-        play_betting_round(players, current_player)
-        print("Cartas en el río:", river)
-
-    if len(deck) >= 1:
-        print("Turn:")
-        river.append(deck.pop())
-        print("Cartas en el río después del turn:", river)
-        play_betting_round(players, current_player)
-        print("Cartas en el río:", river)
-
-    if len(deck) >= 1:
-        print("River:")
-        river.append(deck.pop())
-        print("Cartas en el río después del river:", river)
-        play_betting_round(players, current_player)
-        print("Cartas en el río:", river)
-    else:
-        print("No hay cartas en el river")
-
-    print("Cartas del río:", river)
-    return river
-
-
-
 
 
 def call():
@@ -348,9 +347,5 @@ def all_in():
     print("El jugador hizo un All-in!")
 
 
-
-
-
-# Lógica para la ronda de juego principal aquí...
 
 main()

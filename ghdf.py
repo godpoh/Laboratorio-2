@@ -173,7 +173,7 @@ for i in range(player_count):
 
 # Add dealer to table:
 
-dealer = Table()
+dealer = table()
 
 dealer.flop()
 dealer.turn()
