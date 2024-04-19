@@ -4,7 +4,8 @@ human_player = input("Ingrese su nombre: ")
 player = []
 bot = []
 table = []
-player_chips = 0  # Corregido para que sea un entero en lugar de un diccionario
+player_chips = {}
+bot_chips = {}
 current_bet = 0
 pot = 0
 big_blind = 10
@@ -47,8 +48,7 @@ def exit_game():
     print("Saliendo del sistema")
     exit()
 
-
-def chip_conversion(initial_money):
+def chip_conversion(player_fichas):
     denominations = {
         "blanca(1$)": 1,
         "roja(5$)": 5,
@@ -56,21 +56,62 @@ def chip_conversion(initial_money):
         "verde(25$)": 25,
         "negra(100$)": 100
     }
-    players_chips = {}
+    chips_dict = {}
 
-    remaining_money = initial_money
+    remaining_chips = player_fichas
     for denomination, value in denominations.items():
-        max_chips = min(remaining_money // value, 20)
+        max_chips = min(remaining_chips // value, 20)
         chips = random.randint(0, max_chips)
-        players_chips[denomination] = chips
-        remaining_money -= chips * value
+        chips_dict[denomination] = chips
+        remaining_chips -= chips * value
 
-    if remaining_money > 0:
+    if remaining_chips > 0:
         min_denomination = min(denominations.values())
-        players_chips["blanca(1$)"] += remaining_money // min_denomination
+        chips_dict["blanca(1$)"] += remaining_chips // min_denomination
 
-    return sum(players_chips.values())  # Retorna la suma total de fichas
+    return chips_dict
 
+def initialize_bot_chips(player_fichas):
+    denominations = {
+        "blanca(1$)": 1,
+        "roja(5$)": 5,
+        "azul(10$)": 10,
+        "verde(25$)": 25,
+        "negra(100$)": 100
+    }
+    chips_dict = {}
+
+    remaining_chips = player_fichas
+    for denomination, value in denominations.items():
+        max_chips = min(remaining_chips // value, 20)
+        chips = random.randint(0, max_chips)
+        chips_dict[denomination] = chips
+        remaining_chips -= chips * value
+
+    if remaining_chips > 0:
+        min_denomination = min(denominations.values())
+        chips_dict["blanca(1$)"] += remaining_chips // min_denomination
+
+    return chips_dict
+
+def show_initial_chips(human_player):
+    initial_chips = 500  # Cantidad inicial de fichas para cada jugador
+    global player_chips, bot_chips
+    player_chips = chip_conversion(initial_chips)
+    bot_chips = initialize_bot_chips(initial_chips)
+    print("\n|------------------------------------------|")
+    print(f"|{human_player}, tiene las siguientes fichas ")
+    for key, value in player_chips.items():
+        print(f"|{key}: {value} ficha(s)")
+    print("|               TOTAL ($500)               ")
+    print("|------------------------------------------|")
+
+    print("\n|------------------------------------------|")
+    print("|Sheldon Cooper, tiene las siguientes fichas ")
+    for key, value in bot_chips.items():
+        print(f"|{key}: {value} ficha(s)")
+    print("|               TOTAL ($500)               ")
+    print("|------------------------------------------|\n")
 
 def create_shuffle_deck():
     with open("baraja.txt", "r") as file:
@@ -103,7 +144,7 @@ def play_game():
 
 
 def play_round(round_num, num_player, num_bot, num_table):
-    global pot, player_chips, current_bet
+    global pot, current_bet
     print(f"{round_num} ronda")
     deal_cards_for_players(num_player, num_bot, num_table)
     print(f"{human_player}:", player)
@@ -113,7 +154,8 @@ def play_round(round_num, num_player, num_bot, num_table):
     print("Cartas comunitarias:", table)
 
     # Actualizar el bote (pot)
-    pot += player_chips  # Actualizado para agregar solo la cantidad de fichas del jugador
+    current_bet = big_blind
+    pot += big_blind
 
     # Aplicar las ciegas (blinds)
     if round_num == 1:
@@ -126,76 +168,44 @@ def play_round(round_num, num_player, num_bot, num_table):
         action = input("Acción no válida. Seleccione call, raise, fold, o all-in: ").lower()
 
     if action == "call":
-        call(human_player)
+        call()
     elif action == "raise":
         amount = int(input("Ingrese la cantidad para subir: "))
-        raisee(human_player, amount)
+        raisee(amount)
     elif action == "fold":
         fold(human_player)
-        return  # Salir de la función play_round() después de que el jugador se retira
     elif action == "all-in":
-        all_in(human_player)
+        all_in()
+
     # Turno del bot
     print("\nTurno de Sheldon Cooper")
     bot_action = random.choice(["call", "raise", "fold", "all-in"])
     print("Sheldon Cooper seleccionó:", bot_action)
 
     if bot_action == "call":
-        call("Sheldon Cooper")
+        call()
     elif bot_action == "raise":
-        max_raise_amount = min(current_bet + player_chips, player_chips)  # Corregido para usar el mínimo entre current_bet + player_chips y player_chips
+        max_raise_amount = min(current_bet + player_chips["blanca(1$)"], player_chips["blanca(1$)"])
         amount = random.randint(current_bet, max_raise_amount)
         raisee(amount)
     elif bot_action == "fold":
         fold("Sheldon Cooper")
-        return  # Salir de la función play_round() después de que el bot se retira
     elif bot_action == "all-in":
-        all_in("Sheldon Cooper")
-
-    # Si ambos jugadores están en el juego, evaluar la mano al final de la ronda
-    if player and bot:
-        winner = evaluate_hands(player, bot)
-        if winner == human_player:
-            print(f"{human_player} gana la ronda.")
-            player_chips += pot
-        else:
-            print("Sheldon Cooper gana la ronda.")
-        print(f"{human_player}, tienes un total de {player_chips} fichas.")
-        print("Sheldon Cooper, tiene un total de", bot_chips, "fichas.")
-        pot = 0  # Reiniciar el bote al final de la ronda
-
+        all_in()
 
 def apply_blinds():
     global player_chips, current_bet, pot
     # Aplicar la ciega pequeña (small blind)
-    player_chips -= small_blind
+    player_chips["blanca(1$)"] -= small_blind
     current_bet = small_blind
     pot += small_blind
     print(f"{human_player} pone la ciega pequeña de {small_blind} fichas.")
 
     # Aplicar la ciega grande (big blind)
-    player_chips -= big_blind
+    bot_chips["blanca(1$)"] -= big_blind
     current_bet = big_blind
     pot += big_blind
     print(f"Sheldon Cooper pone la ciega grande de {big_blind} fichas.")
-
-
-def show_initial_chips(human_player):
-    initial_money = 500  # Cantidad inicial de dinero para cada jugador
-    global player_chips, bot_chips
-    player_chips = chip_conversion(initial_money)
-    bot_chips = chip_conversion(initial_money)
-    print("\n|------------------------------------------|")
-    print(f"|{human_player}, tiene las siguientes fichas ")
-    print(f"|Fichas totales: {player_chips}")
-    print("|               TOTAL ($500)               ")
-    print("|------------------------------------------|")
-
-    print("\n|------------------------------------------|")
-    print("|Sheldon Cooper, tiene las siguientes fichas ")
-    print(f"|Fichas totales: {bot_chips}")
-    print("|               TOTAL ($500)               ")
-    print("|------------------------------------------|\n")
 
 
 def evaluate_hands(cards_player, cards_opponent):
@@ -286,7 +296,7 @@ def evaluate_hands(cards_player, cards_opponent):
 
 
 def start_game():
-    global player_chips, current_bet, pot
+    global pot, current_bet
     show_initial_chips(human_player)
     play_game()
     winner = evaluate_hands(player, bot)
@@ -294,46 +304,50 @@ def start_game():
     exit_game()
 
 
-def call(player_name):
-    global player_chips, current_bet, pot
-    if player_chips < current_bet:
+def call():
+    global current_bet, pot
+    if player_chips["blanca(1$)"] < current_bet:
         print("No tienes suficientes fichas para igualar la apuesta.")
     else:
-        chips_to_call = current_bet - big_blind
-        player_chips -= chips_to_call
+        chips_to_call = current_bet
+        player_chips["blanca(1$)"] -= chips_to_call
         pot += chips_to_call
-        print(f"{player_name} iguala la apuesta.")
+        print(f"{human_player} hace call.")
 
 
 def raisee(amount):
-    global player_chips, current_bet, pot
-    if player_chips < amount:
+    global current_bet, pot
+    if player_chips["blanca(1$)"] < amount:
         print("No tienes suficientes fichas para subir la apuesta.")
     else:
-        player_chips -= amount
+        player_chips["blanca(1$)"] -= amount
         current_bet += amount
         pot += amount
         print(f"{human_player} hace raise de {amount}.")
 
 
 def fold(player_name):
-    global player_chips, bot_chips
+    global pot
     if player_name == human_player:
         print(f"{player_name} se retira. Sheldon Cooper gana la partida.")
-        exit_game()
+        print(f"Suma de lo apostado por ambos jugadores: {current_bet + big_blind}")
+        bot_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al bot
     else:
         print(f"{player_name} se retira. {human_player} gana la partida.")
-        exit_game()
+        print(f"Suma de lo apostado por ambos jugadores: {current_bet + big_blind}")
+        player_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al jugador humano
+    exit_game()
 
-def all_in(player_name):
-    global player_chips, current_bet, pot
-    if player_chips < current_bet:
-        all_in_amount = player_chips
+
+def all_in():
+    global pot
+    if player_chips["blanca(1$)"] < current_bet:
+        all_in_amount = player_chips["blanca(1$)"]
     else:
-        all_in_amount = player_chips + current_bet
-    player_chips = 0
+        all_in_amount = player_chips["blanca(1$)"] + current_bet
+    player_chips["blanca(1$)"] = 0
     pot += all_in_amount
-    print(f"{player_name} va All In con {all_in_amount} fichas.")
+    print(f"{human_player} va All In con {all_in_amount} fichas.")
 
 
 main()
