@@ -20,7 +20,7 @@ bot_chips = {}
 current_bet = 0
 pot = 0
 big_blind = 10
-small_blind = 5
+small_blind = 10
 dealer_position = 0  # Posición del dealer (boton del dealer), inicia en el jugador 0
 
 
@@ -67,7 +67,7 @@ def save_scores(winner, chips_won):
 
 def show_scores():
     try:
-        with open("score.json", "r") as file:
+        with open("score.txt", "r") as file:
             scores = json.load(file)
             print("----- Puntuaciones -----")
             for score in scores:
@@ -206,7 +206,6 @@ def play_round(round_num, num_player, num_bot, num_table):
             break
         else:
             print("Opción no válida. Intente nuevamente.")
-
         # Turno del bot
     print("\n           Turno de Sheldon Cooper")
     bot_action = random.choice(["1", "2", "3", "4"])
@@ -215,12 +214,12 @@ def play_round(round_num, num_player, num_bot, num_table):
     if bot_action == "1":
         call("Sheldon Cooper")
     elif bot_action == "2":
-        max_raise_amount = min(current_bet + sum(player_chips.values()), sum(player_chips.values()))
-        if current_bet == 0:  # Asegurarse de que current_bet tenga un valor válido
-            current_bet = big_blind  # Asignar la ciega grande como apuesta inicial
-        amount = random.randint(current_bet, max_raise_amount)
+        # Se elimina la generación aleatoria de la cantidad para subir
+        # y se establece en el valor de current_bet más un monto aleatorio
+        amount = random.randint(current_bet, current_bet + sum(bot_chips.values()))
         raisee(amount, "Sheldon Cooper")
-
+    elif bot_action == "3":
+        fold("Sheldon Cooper")
     elif bot_action == "4":
         all_in("Sheldon Cooper")
 
@@ -233,7 +232,7 @@ def call(player):
         chips_to_call = current_bet - bot_chips["blanca(1$)"]
 
     if chips_to_call <= 0:
-        print(f"{player} ya ha igualado la apuesta.")
+        print(f"{player} ya ha igualado la apuesta(Check).")
         print(f"Fichas en juego: {pot}")
         return
 
@@ -253,6 +252,7 @@ def call(player):
 
 def raisee(amount, player):
     global player_chips, current_bet, pot
+    max_raise_amount = min(current_bet + sum(player_chips.values()), sum(player_chips.values()))
     if player_chips["blanca(1$)"] < amount:
         print("No tienes suficientes fichas para subir la apuesta.")
         all_in_amount = player_chips["blanca(1$)"]
@@ -262,6 +262,7 @@ def raisee(amount, player):
         print(f"{player} va All-In con {all_in_amount} fichas para seguir jugando.")
         print(f"Fichas en juego: {pot}\n")
     else:
+        amount = min(amount, max_raise_amount - current_bet)  # Asegurarse de que el raise no exceda el máximo posible
         player_chips["blanca(1$)"] -= amount
         current_bet += amount
         pot += amount
@@ -276,9 +277,9 @@ def fold(player_name):
     else:
         print(f"{player_name} se retira. {human_player} gana la partida.")
         player_chips["blanca(1$)"] += pot
-    print(f"Suma de lo apostado por ambos jugadores: {pot + current_bet}")
-    total_winnings = sum(player_chips.values())
-    print(f"{player_name} ganó un total de {total_winnings} fichas.")
+    total_winnings = pot
+    print(f"Suma de lo apostado por ambos jugadores: {total_winnings}")
+    print(f"{human_player} ganó un total de {total_winnings} fichas.")
     exit_game()
 
 def all_in(player):
@@ -311,8 +312,7 @@ def apply_blinds():
 
 
 def evaluate_hands(cards_player, cards_opponent):
-    card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13,
-                   'A': 14}
+    card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13,'A': 14}
 
     def pair(hand):
         card_values = [card[0] for card in hand]
@@ -332,8 +332,7 @@ def evaluate_hands(cards_player, cards_opponent):
         return three_of_a_kind(hand) and pair(hand)
 
     def straight(hand):
-        sorted_values = sorted(
-            [card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in hand])
+        sorted_values = sorted([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in hand])
         return len(set(sorted_values)) == 5 and (sorted_values[-1] - sorted_values[0] == 4)
 
     def two_pairs(hand):
@@ -379,12 +378,8 @@ def evaluate_hands(cards_player, cards_opponent):
     best_hand_bot_opponent = evaluate_best_hand(cards_opponent + table)
 
     if best_hand_human_player == best_hand_bot_opponent:
-        highest_card_human_player = max(
-            [card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in
-             cards_player + table])
-        highest_card_bot_opponent = max(
-            [card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in
-             cards_opponent + table])
+        highest_card_human_player = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_player + table])
+        highest_card_bot_opponent = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_opponent + table])
         if highest_card_human_player > highest_card_bot_opponent:
             return human_player
         elif highest_card_human_player < highest_card_bot_opponent:
@@ -404,8 +399,14 @@ def start_game():
     winner = evaluate_hands(player, bot)
     print(f"\n{human_player}: {player}")
     print(f"Sheldon Cooper: {bot} ")
-    print(f"Fichas Comunitarias: {table}\n")
+    print(f"Cartas Comunitarias: {table}\n")
     print(f"Ganador de la partida: {winner}")
+    if winner == "Sheldon Cooper":
+        save_scores("Sheldon Cooper", pot)
+    elif winner == human_player:
+        save_scores(human_player, pot)
+    elif winner == "Empate":
+        save_scores("Empate", pot)
     exit_game()
 
 
