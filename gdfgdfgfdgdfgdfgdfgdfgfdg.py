@@ -1,6 +1,17 @@
 import random
+import time
+import json
 
-human_player = input("Ingrese su nombre: ")
+def validate_string(prompt):
+    while True:
+        user_input = input(prompt)
+        if not user_input.replace(" ", "").isalpha() or not user_input.istitle():
+            print("Se debe empezar con Mayuscula y  deben ser letras ")
+        else:
+            return user_input
+
+human_player = validate_string("Ingrese su nombre: ")
+
 player = []
 bot = []
 table = []
@@ -10,7 +21,7 @@ current_bet = 0
 pot = 0
 big_blind = 10
 small_blind = 5
-dealer_position = 0  # Posición del dealer (botón del dealer), inicia en el jugador 0
+dealer_position = 0  # Posición del dealer (boton del dealer), inicia en el jugador 0
 
 
 def show_main_menu():
@@ -40,8 +51,29 @@ def options_menu(selection):
         print("\nOpcion invalida. Intente de nuevo\n")
 
 
+def save_scores(winner, chips_won):
+    try:
+        with open("score.json", "r") as file:
+            scores = json.load(file)
+            print("Puntuaciones cargadas:", scores)  # Agrega esta línea para depurar
+    except FileNotFoundError:
+        print("Archivo 'score.json' no encontrado.")
+        scores = []
+
+    scores.append({"nombre": winner, "fichas": chips_won})
+
+    with open("score.json", "w") as file:
+        json.dump(scores, file)
+
 def show_scores():
-    pass
+    try:
+        with open("score.json", "r") as file:
+            scores = json.load(file)
+            print("----- Puntuaciones -----")
+            for score in scores:
+                print(f"Nombre: {score['nombre']}, Fichas: {score['fichas']}")
+    except FileNotFoundError:
+        print("No hay puntuaciones guardadas.")
 
 
 def exit_game():
@@ -91,7 +123,8 @@ def show_initial_chips(human_player):
         print(f"|{key}: {value} ficha(s)")
     print("|               TOTAL ($500)               ")
     print("|------------------------------------------|\n")
-
+    print("Empezando el juego en 1 segundo...\n")
+    time.sleep(1)
 
 def create_shuffle_deck():
     with open("baraja.txt", "r") as file:
@@ -125,14 +158,20 @@ def play_game():
 
 def play_round(round_num, num_player, num_bot, num_table):
     global pot, current_bet
-    print(f"\n{round_num} RONDA\n")
+    print("--------------------------------------------")
+    print(f"                 RONDA {round_num} ")
+    print("--------------------------------------------")
     deal_cards_for_players(num_player, num_bot, num_table)
-    print(f"{human_player}: {player}")
-    print("Sheldon Cooper: Incognito, Incognito", )
-
+    print(f"Cartas de {human_player}: {player}")
+    print(f"Fichas de {human_player}: {player_chips}")
+    print("--------------------------------------------")
+    print("Cartas de Sheldon Cooper: Incognito, Incognito", )
+    print(f"Fichas de Sheldon Cooper: {bot_chips}")
+    print("--------------------------------------------")
     # Mostrar las cartas comunitarias
     print("Cartas comunitarias:", table)
-
+    print(f"Fichas en juego: {pot}")
+    print("--------------------------------------------")
     # Actualizar el bote (pot)
     pot += current_bet
 
@@ -141,99 +180,117 @@ def play_round(round_num, num_player, num_bot, num_table):
         apply_blinds()
 
     # Turno del jugador humano
-    print("\nTurno de", human_player)
-    action = input("Seleccione una acción (call, raise, fold, all-in): ").lower()
-    while action not in ["call", "raise", "fold", "all-in"]:
-        action = input("Acción no válida. Seleccione call, raise, fold, o all-in: ").lower()
+    print("\n             Turno de", human_player)
+    while True:
+        print("\n|------------------------------------------|")
+        print("|          Opciones de apuesta             |")
+        print("|               1. Call                    |")
+        print("|               2. Raise                   |")
+        print("|               3. Fold                    |")
+        print("|               4. All-In                  |")
+        print("|------------------------------------------|")
 
-    if action == "call":
-        call()
-    elif action == "raise":
-        amount = int(input("Ingrese la cantidad para subir: "))
-        raisee(amount)
-    elif action == "fold":
-        fold(human_player)
-    elif action == "all-in":
-        all_in(player)
+        action = input("Seleccione una acción (1-4): ").lower()
+        if action == "1":
+            call(human_player)
+            break
+        elif action == "2":
+            amount = int(input("Ingrese la cantidad para subir: "))
+            raisee(amount, human_player)
+            break
+        elif action == "3":
+            fold(human_player)
+            break
+        elif action == "4":
+            all_in(player)
+            break
+        else:
+            print("Opción no válida. Intente nuevamente.")
 
-    # Turno del bot
-    print("\nTurno de Sheldon Cooper")
-    bot_action = random.choice(["call", "raise", "fold", "all-in"])
+        # Turno del bot
+    print("\n           Turno de Sheldon Cooper")
+    bot_action = random.choice(["1", "2", "3", "4"])
     print("Sheldon Cooper seleccionó:", bot_action)
 
-    if bot_action == "call":
-        call()
-    elif bot_action == "raise":
+    if bot_action == "1":
+        call("Sheldon Cooper")
+    elif bot_action == "2":
         max_raise_amount = min(current_bet + sum(player_chips.values()), sum(player_chips.values()))
         if current_bet == 0:  # Asegurarse de que current_bet tenga un valor válido
             current_bet = big_blind  # Asignar la ciega grande como apuesta inicial
         amount = random.randint(current_bet, max_raise_amount)
-        raisee(amount)
+        raisee(amount, "Sheldon Cooper")
 
-    elif bot_action == "all-in":
-        all_in(player)
+    elif bot_action == "4":
+        all_in("Sheldon Cooper")
 
 
-def call():
-    global player_chips, current_bet, pot
-    if player_chips["blanca(1$)"] < current_bet:
+def call(player):
+    global player_chips, bot_chips, current_bet, pot
+    if player == human_player:
+        chips_to_call = current_bet - player_chips["blanca(1$)"]
+    else:
+        chips_to_call = current_bet - bot_chips["blanca(1$)"]
+
+    if chips_to_call <= 0:
+        print(f"{player} ya ha igualado la apuesta.")
+        print(f"Fichas en juego: {pot}")
+        return
+
+
+    if player_chips["blanca(1$)"] < chips_to_call:
         print("No tienes suficientes fichas para igualar la apuesta.")
-        # Apostar todas las fichas restantes
         all_in_amount = player_chips["blanca(1$)"]
         player_chips["blanca(1$)"] = 0
         pot += all_in_amount
-        print(f"{human_player} va All-In con {all_in_amount} fichas para seguir jugando.")
+        print(f"{player} va All-In con {all_in_amount} fichas para seguir jugando.")
         print(f"Fichas en juego: {pot}")
     else:
-        chips_to_call = current_bet
         player_chips["blanca(1$)"] -= chips_to_call
         pot += chips_to_call
-        print(f"{human_player} iguala la apuesta de {current_bet} fichas.")
+        print(f"{player} iguala la apuesta de {chips_to_call} fichas.")
         print(f"Fichas en juego: {pot}")
 
-def raisee(amount):
+def raisee(amount, player):
     global player_chips, current_bet, pot
     if player_chips["blanca(1$)"] < amount:
         print("No tienes suficientes fichas para subir la apuesta.")
-        # Apostar todas las fichas restantes
         all_in_amount = player_chips["blanca(1$)"]
         player_chips["blanca(1$)"] = 0
         current_bet += all_in_amount
         pot += all_in_amount
-        print(f"{human_player} va All-In con {all_in_amount} fichas para seguir jugando.")
+        print(f"{player} va All-In con {all_in_amount} fichas para seguir jugando.")
         print(f"Fichas en juego: {pot}\n")
     else:
         player_chips["blanca(1$)"] -= amount
         current_bet += amount
         pot += amount
-        print(f"{human_player} hace raise de {amount}.")
+        print(f"{player} hace raise de {amount}.")
         print(f"Fichas en juego: {pot}\n")
-
 
 def fold(player_name):
     global player_chips, bot_chips, pot, current_bet
     if player_name == human_player:
         print(f"{player_name} se retira. Sheldon Cooper gana la partida.")
-        bot_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al bot
+        bot_chips["blanca(1$)"] += pot
     else:
         print(f"{player_name} se retira. {human_player} gana la partida.")
-        player_chips["blanca(1$)"] += pot  # Devolver las fichas del bote al jugador humano
+        player_chips["blanca(1$)"] += pot
     print(f"Suma de lo apostado por ambos jugadores: {pot + current_bet}")
     total_winnings = sum(player_chips.values())
-    print(f"{human_player} ganó un total de {total_winnings} fichas.")
+    print(f"{player_name} ganó un total de {total_winnings} fichas.")
     exit_game()
-
 
 def all_in(player):
     global pot, player_chips, bot_chips, current_bet
     all_in_amount = sum(player_chips.values()) if player == human_player else sum(bot_chips.values())
     if player == human_player:
-        player_chips = {denomination: 0 for denomination in player_chips}  # Vaciar las fichas del jugador
+        player_chips = {denomination: 0 for denomination in player_chips}
     else:
-        bot_chips = {denomination: 0 for denomination in bot_chips}  # Vaciar las fichas del bot
+        bot_chips = {denomination: 0 for denomination in bot_chips}
     pot += all_in_amount
-    current_bet += all_in_amount  # Actualizar la apuesta actual (current_bet)
-    print(f"{human_player} va All In con {all_in_amount} fichas.")
+    current_bet += all_in_amount
+    print(f"{player} va All In con {all_in_amount} fichas.")
     print(f"Fichas en juego: {pot}")
 
 def apply_blinds():
@@ -249,6 +306,8 @@ def apply_blinds():
     current_bet = big_blind
     pot += big_blind
     print(f"Sheldon Cooper pone la ciega grande de {big_blind} fichas.")
+    print(f"Fichas en juego: {pot}")
+    print("--------------------------------------------")
 
 
 def evaluate_hands(cards_player, cards_opponent):
@@ -344,7 +403,8 @@ def start_game():
     play_game()
     winner = evaluate_hands(player, bot)
     print(f"\n{human_player}: {player}")
-    print(f"Sheldon Cooper: {bot} \n")
+    print(f"Sheldon Cooper: {bot} ")
+    print(f"Fichas Comunitarias: {table}\n")
     print(f"Ganador de la partida: {winner}")
     exit_game()
 
