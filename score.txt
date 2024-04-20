@@ -1,0 +1,14 @@
+Nombre: Jeremy, Fichas: 1948
+Nombre: Empate, Fichas: 0
+Nombre: Pacheco, Fichas: 1037
+Nombre: Jr, Fichas: 921
+Nombre: Jeremy, Fichas: 168
+Nombre: Empate, Fichas: 0
+Nombre: Sheldon Cooper, Fichas: 271
+
+
+Nombre: Jeremy, Fichas: 102
+Nombre: Jeremy, Fichas: 163
+Nombre: Jeremy, Fichas: 389
+Nombre: Jeremy, Fichas: 1134
+Nombre: Sheldon Cooper, Fichas: 604
