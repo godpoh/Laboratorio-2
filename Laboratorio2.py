@@ -388,10 +388,12 @@ def evaluate_hands(cards_player, cards_opponent):
             return "Cuatro Iguales!"
         else:
             return "Carta Alta!"
-
+    #Evalua las cartas del jugador humano y las cartas comunitarias
     best_hand_human_player = evaluate_best_hand(cards_player + table)
+    # Evalua las cartas del jugador bot y las cartas comunitarias
     best_hand_bot_opponent = evaluate_best_hand(cards_opponent + table)
-
+    #Si la mano del jugador es mejor que la del bot se imprimira que el ganador es el humano, sino sera el bot
+    #En caso de empate se mostrara empate
     if best_hand_human_player == best_hand_bot_opponent:
         highest_card_human_player = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_player + table])
         highest_card_bot_opponent = max([card_values[card.split()[0]] if card.split()[0] in card_values else int(card.split()[0]) for card in cards_opponent + table])
@@ -407,12 +409,13 @@ def evaluate_hands(cards_player, cards_opponent):
         return "Sheldon Cooper"
 #Funcion que ejecuta todas las funciones anteriores para que el juego funcione correctamente
 def start_game():
+    #Llama las variables globales
     global pot, current_bet
     show_initial_chips(human_player)
     play_game()
     winner = evaluate_hands(player, bot)
     print(f"\n{human_player}: {player}")
-    print(f"Sheldon Cooper: {bot} ")
+    print(f"Sheldon Cooper: {bot}")
     print(f"Cartas Comunitarias: {table}\n")
     print(f"Ganador de la partida: {winner}")
     if winner == "Sheldon Cooper":
@@ -426,6 +429,7 @@ def start_game():
         total_assets_human = sum(player_chips.values()) + pot
         print("El jugador obtuvo un total de fichas de", total_assets_human)
         save_scores(human_player, total_assets_human)
+
     elif winner == "Empate":
         save_scores("Empate", 0)
     exit_game()
